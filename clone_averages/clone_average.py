@@ -39,12 +39,20 @@ def clone_url(k: int) -> str:
     return urljoin(base, fname)
 
 def stream_clone_coeffs(url: str, L: int):
-    # takes in the provided URL and returns the coefficients as a set of tuples (n, m, C, S), but only for n and m <= L
-    with requests.get(url, stream=True, timeout=120) as r:
-        r.raise_for_status()
-        it = r.iter_lines(decode_unicode=True)
-        # Header line (R, GM, etc.)
-        header = next(it)
+    # returns radius in Km, G * M in km^3/s^2, and the c and s coefficients
+
+    r = requests.get(url, stream=True, timeout=120)
+    r.raise_for_status()
+    it = r.iter_lines(decode_unicode=True)
+
+    # parse the file header
+    header = next(it).strip()
+    parts = [p.strip() for p in header.split(",")]
+
+    R_km = float(parts[0])
+    GM_km3_s2 = float(parts[1])
+
+    def coeff_generator():
         for line in it:
             if not line:
                 continue
@@ -53,7 +61,6 @@ def stream_clone_coeffs(url: str, L: int):
                 continue
             n = int(m.group(1))
             if n > L:
-                # files are degree-ordered, so we can stop early
                 break
             mm = int(m.group(2))
             if mm > n:
@@ -62,20 +69,33 @@ def stream_clone_coeffs(url: str, L: int):
             s = float(m.group(4))
             yield n, mm, c, s
 
+    return R_km, GM_km3_s2, coeff_generator()
+
 def average_clones(L: int, k_start: int = 1, k_end: int = 500):
     # Running mean 
     C_mean = np.zeros((L + 1, L + 1), dtype=np.float64)
     S_mean = np.zeros((L + 1, L + 1), dtype=np.float64)
+    R_km_ref = None
+    GM_km3_s2_ref = None
+
     count = 0
 
     for k in range(k_start, k_end + 1):
         url = clone_url(k)
+
+        R_km, GM_km3_s2, coeffs = stream_clone_coeffs(url, L)
+
+        # we take R_km and GM_km3_s2 from the first clone only
+        if count == 0: 
+            R_km_ref = R_km
+            GM_km3_s2_ref = GM_km3_s2
+
         count += 1
-        # Temporary accumulator for this clone (only up to L)
+        # initialize our Ck and Sk matrices for this specific clone
         Ck = np.zeros((L + 1, L + 1), dtype=np.float64)
         Sk = np.zeros((L + 1, L + 1), dtype=np.float64)
 
-        for n, m, c, s in stream_clone_coeffs(url, L):
+        for n, m, c, s in coeffs:
             Ck[n, m] = c
             Sk[n, m] = s
 
@@ -85,10 +105,10 @@ def average_clones(L: int, k_start: int = 1, k_end: int = 500):
 
         print(f"Processed clone {k:04d} ({count} total)")
 
-    return C_mean, S_mean
+    return C_mean, S_mean, R_km_ref, GM_km3_s2_ref
 
 if __name__ == "__main__":
-    L = 100  # this is the truncation degree (basically what the final size our matrix is going to be)
-    Cbar, Sbar = average_clones(L)
-    np.savez(f"grgm1200a_clone_mean_L{L}.npz", C=Cbar, S=Sbar)
+    L = 660  # this is the truncation degree (basically what the final size our matrix is going to be)
+    Cbar, Sbar, R_km, GM_km3_s2 = average_clones(L)
+    np.savez(f"grgm1200a_clone_mean_L{L}.npz", C=Cbar, S=Sbar, R_km=R_km, GM_km3_s2=GM_km3_s2)
     print("Saved mean coefficients.")
