@@ -8,4 +8,6 @@ def retrieve_C_S(L: int):
     data = np.load(file_name)
     C = data["C"]
     S = data["S"]
-    return C, S
+    mu = data["GM_km3_s2"]
+    R = data["R_km"]
+    return C, S, mu, R
