@@ -109,6 +109,6 @@ def average_clones(L: int, k_start: int = 1, k_end: int = 500):
 
 if __name__ == "__main__":
     L = 660  # this is the truncation degree (basically what the final size our matrix is going to be)
-    Cbar, Sbar = average_clones(L)
-    np.savez(f"grgm1200a_clone_mean_L{L}.npz", C=Cbar, S=Sbar, R_km=R_km, GM_km3_s2=GM_km3_s2)
+    Cbar, Sbar, R_km_ref, GM_km3_s2_ref = average_clones(L)
+    np.savez(f"grgm1200a_clone_mean_L{L}.npz", C=Cbar, S=Sbar, R_km=R_km_ref, GM_km3_s2=GM_km3_s2_ref)
     print("Saved mean coefficients.")
