@@ -9,5 +9,7 @@ def define_ground_station_locations(n):
         locations.append((latitude, longitude))
     return locations
 
-def take_measurements(state, ground_station_locations):
+def take_measurements(state, ground_station_locations, noise=True):
+    # for each ground station, we will take a measurement of the range and range rate to the spacecraft
+    measurements = []
     
