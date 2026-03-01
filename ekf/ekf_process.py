@@ -1,7 +1,7 @@
 # running through some function ideas
 import numpy as np
 
-def ekf_step(x, P, z, dt, L_max, eps, Q, R):
+def ekf_step(x, P, y, dt, gs_loc, L_max, eps, Q, R):
     # an actual single step of our EKF
     # inputs:
     # x: state vector [x_t|t-1, y_t|t-1, z_t|t-1, vx_t|t-1, vy_t|t-1, vz_t|t-1]
@@ -21,15 +21,14 @@ def ekf_step(x, P, z, dt, L_max, eps, Q, R):
     P_pred = A @ P @ A.T + Q
 
     # Update step
-    H = np.eye(3)  # measurement matrix (identity for position)
-    R = np.eye(3) * 0.01  # measurement noise covariance (example value)
+    C = calculate_C_gs()
 
-    y = z - x_pred[:3]  # innovation (measurement - prediction)
-    S = H @ P_pred @ H.T + R  # innovation covariance
-    K = P_pred @ H.T @ np.linalg.inv(S)  # Kalman gain
+    innov = y - x_pred[:3]  # innovation (measurement - prediction)
+    S = C @ P_pred @ C.T + R  # innovation matrix
+    K = P_pred @ C.T @ np.linalg.inv(S)  # Kalman gain
 
-    x_updated = x_pred + K @ y
-    P_updated = (np.eye(6) - K @ H) @ P_pred
+    x_updated = x_pred + K @ innov
+    P_updated = (np.eye(6) - K @ C) @ P_pred
 
     return x_updated, P_updated
 
@@ -72,7 +71,7 @@ def calculate_A_analytical(dt):
     # I think this part might just be a bitch regardless
     pass
 
-
-
+def calculate_C_gs():
+    # calculates the measurement Jacobian C using a series of ground stations on the moon
 
 
