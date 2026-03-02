@@ -7,7 +7,7 @@ gravity/gravity_model.py
 
     accel_inertial(r_I_m, t_s, L)
 
-  which returns the lunar gravity acceleration in a Moon-centered inertial frame.
+  which returns the lunar gravity acceleration in a Moon-centered inertial frame
 """
 
 from __future__ import annotations
@@ -278,7 +278,7 @@ class GravityModel:
 
 
 # ============================================================
-# test 
+# checks
 # ============================================================
 
 if __name__ == "__main__":
