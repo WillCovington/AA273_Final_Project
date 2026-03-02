@@ -9,6 +9,7 @@ def define_ground_station_locations(n):
         locations.append((latitude, longitude))
     return locations
 
+# I'm starting to second guess if we need this function like I imagined, but I'll fix it later
 def take_measurements(state, ground_station_locations, R, noise=True):
     # for each ground station, we will take a measurement of the range and range rate to the spacecraft
     # TODO still need to get the coordinate transformations sorted
@@ -32,3 +33,4 @@ def take_measurements(state, ground_station_locations, R, noise=True):
         # using the range measurement, we can calculate the range rate
         range_rate_measurement = np.dot(range, relative_velocity) / (np.linalg.norm(range) + 1e-10) + w[1]
         measurements.append((range_measurement, range_rate_measurement))
+    return np.array(measurements).T # returning as a 2 x m array, where m is the number of ground stations

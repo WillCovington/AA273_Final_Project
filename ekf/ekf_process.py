@@ -1,5 +1,6 @@
 # running through some function ideas
 import numpy as np
+from take_measurements import *
 
 def ekf_step(x, P, y, dt, gs_loc, L_max, eps, Q, R):
     # an actual single step of our EKF
@@ -21,7 +22,7 @@ def ekf_step(x, P, y, dt, gs_loc, L_max, eps, Q, R):
     P_pred = A @ P @ A.T + Q
 
     # Update step
-    C = calculate_C_gs()
+    C = calculate_C_gs(gs_loc, x_pred) # calculates C given our predicted state
 
     innov = y - x_pred[:3]  # innovation (measurement - prediction)
     S = C @ P_pred @ C.T + R  # innovation matrix
@@ -71,7 +72,40 @@ def calculate_A_analytical(dt):
     # I think this part might just be a bitch regardless
     pass
 
-def calculate_C_gs():
+def calculate_C_gs(gs_locations, state_estimate):
     # calculates the measurement Jacobian C using a series of ground stations on the moon
+    # unlike A, C can actually be computed pretty easily analytically regardless of the sh d/o, so no need for a finite differencing technique
+    # C will be a 2*m x n matrix; 2m because for each ground station, we receive both a range measurement and a range rate measurement
+    m = len(gs_locations)
+    # initializing C
+    C = np.zeros((2*m, 6))
+    # getting our estimated state
+    r = np.asarray(state_estimate[0:3], dtype=float)  
+    v = np.asarray(state_estimate[3:6], dtype=float)
+
+    # looping through and building C
+    for i, gs_loc in enumerate(gs_locations):
+        # to calculate C, we need to know what specific ground station we received our range from
+        gs_loc = np.asarray(gs_loc, dtype=float)
+        rg = gs_loc[0:3]
+        # TODO still need to figure out our reference frame
+        gs_loc_xyz = lat_long_radius_to_xyz(gs_loc)
+        vg = gs_xyz_to_vel(gs_loc_xyz) # TODO: still need to write this function
+        
+        # now we're going to do what take_measurements was supposed to do, but better
+        range_vector = r - rg
+        range_mag = np.linalg.norm(range_vector)
+        dv = v - vg
+
+        # putting together the different parts of our C block
+        C_tl = range_vector.T / range_mag
+        C_tr = np.zeros((1, 3))
+        C_bl = dv.T / range_mag - np.dot(range_vector, dv) * range_vector.T / (range_mag**3)
+        C_br = C_tl
+        C_instance = np.block([[C_tl, C_tr], [C_bl, C_br]])
+        C[2*i:2*i+1, :] = C_instance
+
+    return C_instance
 
 
+        
