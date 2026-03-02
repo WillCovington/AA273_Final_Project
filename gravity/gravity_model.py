@@ -15,14 +15,23 @@ from __future__ import annotations
 import numpy as np
 from dataclasses import dataclass
 from typing import Tuple
+import os
+from pathlib import Path
 
 # ============================================================
 # SETTINGS
 # ============================================================
 
+def list_available_npz(folder: str = "clone_averages"):
+    """
+    I list all available gravity coefficient files in clone_averages.
+    """
+    folder_path = Path(folder)
+    return sorted(folder_path.glob("*.npz"))
+
 COEFFS_NPZ_PATH = "clone_averages/grgm1200a_clone_mean_L660.npz"
 
-# never allow L < 2 (avoid accidental two-body runs)
+# never let L < 2 (don't want accidental two-body runs)
 MIN_ALLOWED_L = 2
 
 # Simple Moon spin model (good enough if truth+filter use the same model):
@@ -30,9 +39,9 @@ MIN_ALLOWED_L = 2
 MOON_OMEGA_RAD_S = 2.6617e-6  # [rad/s]
 T0_S = 0.0  # reference epoch for rotation angle [s]
 
-# Units policy:
+# Units
 # The .npz stores R_km and GM_km3_s2.
-# I convert once at load time and then everything is SI (meters, seconds).
+# convert once at load time and then everything is SI (meters, seconds)
 KM_TO_M = 1000.0
 KM3_TO_M3 = 1000.0 ** 3
 
@@ -40,11 +49,11 @@ KM3_TO_M3 = 1000.0 ** 3
 EPS = 1e-15
 
 # For MakeGravGridPoint:
-# omega controls centrifugal contribution. I set omega=0 so I get *gravitational only*.
+# omega controls centrifugal contribution. I set omega=0 so I get *gravitational only*
 GRAVMAG_OMEGA = 0.0
 
 # ============================================================
-# 1) =pyshtools
+# pyshtools
 # ============================================================
 
 try:
@@ -57,7 +66,7 @@ except ImportError as e:
 
 
 # ============================================================
-# 2) Small rotation helpers
+# rotation helpers
 # ============================================================
 
 def _rotz(theta: float) -> np.ndarray:
@@ -78,7 +87,7 @@ def _R_I_to_BF(t_s: float) -> np.ndarray:
 
 
 # ============================================================
-# 3) Coordinate conversions (Cartesian <-> spherical basis)
+# Coordinate conversions (Cartesian <-> spherical)
 # ============================================================
 
 def _cart_to_latlonr(r_xyz: np.ndarray) -> Tuple[float, float, float]:
@@ -97,15 +106,15 @@ def _cart_to_latlonr(r_xyz: np.ndarray) -> Tuple[float, float, float]:
 def _sph_components_to_cart(lat_deg: float, lon_deg: float,
                            g_r: float, g_theta: float, g_phi: float) -> np.ndarray:
     """
-    Convert spherical components (r, theta, phi) into Cartesian (x,y,z).
+    Convert spherical (r, theta, phi) into Cartesian (x,y,z).
 
-    pyshtools.gravmag.MakeGravGridPoint returns gravity components in spherical coordinates:
-      (g_r, g_theta, g_phi) where:
+    pyshtools.gravmag.MakeGravGridPoint returns gravity components in spherical coords:
+      (g_r, g_theta, g_phi)
         - r     : radial outward
         - theta : colatitude direction (increasing theta = moving south)
         - phi   : longitude direction (increasing lon = east)
 
-    I convert those to Cartesian using standard unit vectors:
+    convert to Cartesian using std unit vectors:
       e_r     = [cos lat cos lon, cos lat sin lon, sin lat]
       e_phi   = [-sin lon, cos lon, 0]
       e_theta = [-sin lat cos lon, -sin lat sin lon, cos lat]
@@ -126,13 +135,13 @@ def _sph_components_to_cart(lat_deg: float, lon_deg: float,
 
 
 # ============================================================
-# 4) GravityModel class
+# GravityModel class
 # ============================================================
 
 @dataclass(frozen=True)
 class GravityModel:
     """
-    Holds coefficients + constants and provides acceleration calls.
+    Holds coefficients + constants and provides acceleration
 
     Coefficient storage:
       cilm[0, n, m] = C[n,m]
@@ -158,8 +167,24 @@ class GravityModel:
         C = np.array(data["C"], dtype=np.float64)
         S = np.array(data["S"], dtype=np.float64)
 
-        r0_m = float(data["R_km"]) * KM_TO_M
-        gm_m3_s2 = float(data["GM_km3_s2"]) * KM3_TO_M3
+        # r0_m = float(data["R_km"]) * KM_TO_M
+        # gm_m3_s2 = float(data["GM_km3_s2"]) * KM3_TO_M3
+
+        # change
+        # Some clone files don't store R_km or GM_km3_s2
+        # If missing, use standard Moon constants.
+
+        if "R_km" in data:
+            r0_m = float(data["R_km"]) * KM_TO_M
+        else:
+            # I use mean lunar radius [km]
+            r0_m = 1737.4 * KM_TO_M
+
+        if "GM_km3_s2" in data:
+            gm_m3_s2 = float(data["GM_km3_s2"]) * KM3_TO_M3
+        else:
+            # I use standard lunar GM [km^3/s^2]
+            gm_m3_s2 = 4902.800066 * KM3_TO_M3
 
         lmax_data = C.shape[0] - 1
         if C.shape != S.shape:
@@ -172,6 +197,17 @@ class GravityModel:
         cilm[0, :, :] = C
         cilm[1, :, :] = S
 
+        # I saw C00=0 in the averaged clone files (they start at n=2), so I add the monopole term
+        # Without this, I only get tiny perturbation accelerations (~1e-11 m/s^2) instead of ~1.6 m/s^2 in LLO
+        cilm[0, 0, 0] = 1.0
+        cilm[1, 0, 0] = 0.0
+
+        # I keep degree-1 terms at zero (body-centered frame)
+        if lmax_data >= 1:
+            cilm[:, 1, :] = 0.0
+
+        print("C00 =", cilm[0,0,0], "S00 =", cilm[1,0,0])
+
         return GravityModel(cilm=cilm, gm_m3_s2=gm_m3_s2, r0_m=r0_m, lmax_data=lmax_data)
 
     # -----------------------------
@@ -179,7 +215,7 @@ class GravityModel:
     # -----------------------------
     def accel_inertial(self, r_I_m: np.ndarray, t_s: float, L: int) -> np.ndarray:
         """
-        Lunar gravitational acceleration in Moon-centered inertial frame.
+        Lunar gravitational acceleration in Moon-centered inertial frame
 
         Inputs:
           r_I_m : (3,) position [m] in Moon-centered inertial frame
@@ -199,7 +235,7 @@ class GravityModel:
 
         r_I_m = np.asarray(r_I_m, dtype=np.float64).reshape(3,)
 
-        # Inertial -> body-fixed (because coefficients are tied to the rotating Moon)
+        # Inertial -> body-fixed (bc coefficients are tied to the rotating Moon)
         R_I2BF = _R_I_to_BF(t_s)
         r_BF_m = R_I2BF @ r_I_m
 
@@ -220,12 +256,12 @@ class GravityModel:
           pyshtools.gravmag.MakeGravGridPoint(cilm, gm, r0, r, lat, lon, lmax=L, omega=0)
 
         - I set omega=0 to exclude centrifugal acceleration.
-        - Output is in spherical components (r, theta, phi). I convert to Cartesian.
+        - Output is in spherical components (r, theta, phi) so convert to Cartesian
         """
         r, lat_deg, lon_deg = _cart_to_latlonr(r_BF_m)
 
-        # Compute gravity vector components at a single point.
-        # Per SHTOOLS docs, output is (g_r, g_theta, g_phi) in spherical coordinates.
+        # Compute gravity vector components at a single point
+        # Per PYSHTOOLS docs, output is (g_r, g_theta, g_phi) in spherical coordinates.
         g_sph = pyshtools.gravmag.MakeGravGridPoint(
             self.cilm, self.gm_m3_s2, self.r0_m,
             r, lat_deg, lon_deg,
@@ -242,24 +278,33 @@ class GravityModel:
 
 
 # ============================================================
-# test (run directly)
+# test 
 # ============================================================
 
 if __name__ == "__main__":
-    model = GravityModel.from_npz(COEFFS_NPZ_PATH)
-    # Example: 50 km altitude along +x in inertial frame.
-    r0 = model.r0_m + 50_000.0
-    r_I = np.array([r0, 0.0, 0.0], dtype=np.float64)
 
-    # check: compare acceleration for L=2 vs L=660 (or max available)
-    t = 0.0
-    L_truth = min(660, model.lmax_data)
+    npz_files = list_available_npz()
 
-    a2 = model.accel_inertial(r_I, t, L=2)
-    aT = model.accel_inertial(r_I, t, L=L_truth)
+    if not npz_files:
+        raise RuntimeError("No .npz files found in clone_averages/")
 
-    print(f"Loaded lmax_data = {model.lmax_data}")
-    print(f"Using truth L = {L_truth}")
-    print("a(L=2)   [m/s^2] =", a2)
-    print("a(L=truth)[m/s^2] =", aT)
-    print("||aT - a2|| =", np.linalg.norm(aT - a2))
+    for npz_path in npz_files:
+        print("\n======================================")
+        print(f"Testing file: {npz_path.name}")
+
+        model = GravityModel.from_npz(str(npz_path))
+
+        r0 = model.r0_m + 50_000.0
+        r_I = np.array([r0, 0.0, 0.0], dtype=np.float64)
+
+        t = 0.0
+        L_truth = model.lmax_data
+
+        a2 = model.accel_inertial(r_I, t, L=2)
+        aT = model.accel_inertial(r_I, t, L=L_truth)
+
+        print(f"Loaded lmax_data = {model.lmax_data}")
+        print("a(L=2)   [m/s^2] =", a2)
+        print("a(L=max) [m/s^2] =", aT)
+        print("||aT - a2|| =", np.linalg.norm(aT - a2))
+        print("Norm of position:", np.linalg.norm(r_I))
