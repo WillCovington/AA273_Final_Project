@@ -22,7 +22,7 @@ def ekf(x0, P0, measurements, L_max, eps, Q, R):
     return np.array(ts), np.array(xs), Ps
 
 def ekf_step(x, P, y, time_curr, time_prev, gs_loc, L_max, eps, Q, R):
-    # an actual single step of our EKF
+    # a single step of our EKF
     # inputs:
     # x: state vector [x_t|t-1, y_t|t-1, z_t|t-1, vx_t|t-1, vy_t|t-1, vz_t|t-1]
     # P: covariance matrix (6x6)
@@ -37,6 +37,7 @@ def ekf_step(x, P, y, time_curr, time_prev, gs_loc, L_max, eps, Q, R):
 
     # because we care about the time at which we receive measurements, we calculate dt as a function of the current and the previous timestep
     dt = time_curr - time_prev
+    
     # Predict step
     A = calculate_A_finite_diff(dt, x[:3], L_max, eps)
     x_pred = A @ x
@@ -111,7 +112,6 @@ def calculate_C_gs(gs_locations, state_estimate):
         C_br = (range_vector / range_mag).reshape(1, 3)
         C_instance = np.block([[C_tl, C_tr], [C_bl, C_br]])
         C[2*i:2*i+2, :] = C_instance
-
     return C
 
 

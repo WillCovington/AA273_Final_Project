@@ -14,8 +14,8 @@ def take_measurements(state, ground_station_locations, time, R, noise=True):
     # for each ground station, we will take a measurement of the range and range rate to the spacecraft
     # TODO still need to get the coordinate transformations sorted
     measurements = []
-    r = state[:3] # "true" position vector
-    v = state[3:6] # "true" velocity vector
+    r = np.asarray(state[:3]) # "true" position vector
+    v = np.asarray(state[3:6]) # "true" velocity vector
 
     for gs_loc in ground_station_locations:
         # checking for noise
@@ -28,10 +28,11 @@ def take_measurements(state, ground_station_locations, time, R, noise=True):
         gs_r_xyz, gs_v_xyz = gs_state_inertial(gs_loc, time) # need to write this function later
         
         # taking the range measurement for our current state and the ith ground station
-        range = r - gs_r_xyz # range vector
+        range_vector = r - gs_r_xyz # range vector
+        range_mag = np.linalg.norm(range_vector)
         relative_velocity = v - gs_v_xyz # 
-        range_measurement = np.linalg.norm(range) + w[0] # actual range measurement (just a number)
+        range_measurement = range_mag + w[0] # actual range measurement (just a number)
         # using the range measurement, we can calculate the range rate
-        range_rate_measurement = np.dot(range, relative_velocity) / (np.linalg.norm(range) + 1e-10) + w[1]
+        range_rate_measurement = np.dot(range_vector, relative_velocity) / (range_mag + 1e-10) + w[1]
         measurements.append((range_measurement, range_rate_measurement))
     return np.array(measurements).T # returning as a 2 x m array, where m is the number of ground stations
