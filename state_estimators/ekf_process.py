@@ -74,7 +74,11 @@ def accel_jacobian(r, L_max, eps = 0.5):
     # attempts to find the acceleration portion of our jacobian (the 3x3 bottom left block)
     # Inputs:
     # r: current estimated position vector, given as r = [x_t|t, y_t|t, z_t|t]
-    
+    # L_max: our truncation degree
+    # eps: the extra oomph we wanna push our state estimate in each direction of to linearize over
+    # Outputs: 
+    # A: our linearized dynamics Jacobian
+
     A = np.zeros((3, 3))
     for i in range(3):
         dr = np.zeros(3)
