@@ -10,25 +10,26 @@ def define_ground_station_locations(n):
     return locations
 
 # I'm starting to second guess if we need this function like I imagined, but I'll fix it later
-def take_measurements(state, ground_station_locations, R, noise=True):
+def take_measurements(state, ground_station_locations, time, R, noise=True):
     # for each ground station, we will take a measurement of the range and range rate to the spacecraft
     # TODO still need to get the coordinate transformations sorted
     measurements = []
-    x = state[:3] # "true" position vector
+    r = state[:3] # "true" position vector
     v = state[3:6] # "true" velocity vector
-    # checking for noise
-    if noise:
-        w = np.multivariate_normal(mean = np.zeros(2), cov=R)
-    else:
-        w = np.zeros(2)
+
     for gs_loc in ground_station_locations:
+        # checking for noise
+        if noise:
+            w = np.multivariate_normal(mean = np.zeros(2), cov=R)
+        else:
+            w = np.zeros(2)
         # converting our ground station location from lat, long, radius to xyz 
         # TODO: still need to work out if we're working in LCLF or LCI
-        gs_loc_xyz = lat_long_radius_to_xyz(gs_loc) # need to write this function later
-        gs_vel_xyz = gs_xyz_to_vel(gs_loc_xyz) # this should simply be a radial velocity problem if we assume constant radius and angfular velocity
+        gs_r_xyz, gs_v_xyz = gs_state_inertial(gs_loc, time) # need to write this function later
+        
         # taking the range measurement for our current state and the ith ground station
-        range = x - gs_loc_xyz # range vector
-        relative_velocity = v - gs_vel_xyz # 
+        range = r - gs_r_xyz # range vector
+        relative_velocity = v - gs_v_xyz # 
         range_measurement = np.linalg.norm(range) + w[0] # actual range measurement (just a number)
         # using the range measurement, we can calculate the range rate
         range_rate_measurement = np.dot(range, relative_velocity) / (np.linalg.norm(range) + 1e-10) + w[1]
