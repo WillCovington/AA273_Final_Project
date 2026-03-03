@@ -97,3 +97,121 @@ def step_rk4(t: float, x: np.ndarray, dt: float, L: int, model) -> np.ndarray:
 
     x_next = x + (dt / 6.0) * (k1 + 2.0 * k2 + 2.0 * k3 + k4)
     return np.asarray(x_next, dtype=np.float64).reshape(STATE_DIM,)
+
+# ============================================================
+# Propagation API
+# ============================================================
+
+def propagate(
+    x0: np.ndarray,
+    t0: float,
+    dt: float,
+    L: int,
+    model,
+    method: str = DEFAULT_METHOD,
+    substeps: int = DEFAULT_SUBSTEPS,
+) -> np.ndarray:
+    """
+    propagate one time step
+
+    Inputs:
+      x0      : (6,) state [m, m/s]
+      t0      : time [s]
+      dt      : step size [s]
+      L       : truncation degree
+      model   : GravityModel instance (accel_inertial)
+      method  : "rk4"
+      substeps: if >1, split dt into smaller chunks for stability
+
+    Output:
+      x1 : (6,) next state
+    """
+    x = np.asarray(x0, dtype=np.float64).reshape(STATE_DIM,)
+    assert_finite(x, "x0")
+
+    if substeps < 1:
+        raise ValueError("substeps must be >= 1")
+
+    h = dt / float(substeps)
+    t = float(t0)
+
+    if method.lower() != "rk4":
+        raise ValueError(f"Unknown method '{method}'. Only 'rk4' is implemented.")
+
+    for _ in range(substeps):
+        x = step_rk4(t, x, h, L, model)
+        t += h
+
+        # sanity check through every substep
+        assert_finite(x, "x")
+
+    return x
+
+
+def rollout(
+    x0: np.ndarray,
+    t_grid: np.ndarray,
+    L: int,
+    model,
+    method: str = DEFAULT_METHOD,
+    substeps: int = DEFAULT_SUBSTEPS,
+) -> np.ndarray:
+    """
+    I simulate a full trajectory over a provided time grid.
+
+    Inputs:
+      x0      : (6,) initial state
+      t_grid  : (K+1,) times [s] (must be increasing)
+      L       : truncation degree
+      model   : GravityModel instance
+      method/substeps : passed to propagate
+
+    Output:
+      X : (K+1, 6) stacked states, with X[0] = x0
+    """
+    t_grid = np.asarray(t_grid, dtype=np.float64).reshape(-1,)
+    if t_grid.size < 2:
+        raise ValueError("t_grid must have at least 2 time points.")
+    if not np.all(np.diff(t_grid) > 0):
+        raise ValueError("t_grid must be strictly increasing.")
+
+    K = t_grid.size - 1
+    X = np.zeros((K + 1, STATE_DIM), dtype=np.float64)
+
+    x = np.asarray(x0, dtype=np.float64).reshape(STATE_DIM,)
+    assert_finite(x, "x0")
+    X[0, :] = x
+
+    for k in range(K):
+        t0 = float(t_grid[k])
+        dt = float(t_grid[k + 1] - t_grid[k])
+
+        x = propagate(x, t0, dt, L, model, method=method, substeps=substeps)
+        X[k + 1, :] = x
+
+    return X
+
+# ============================================================
+# utilities functions for checks
+# ============================================================
+
+def state_norms(x: np.ndarray) -> Tuple[float, float]:
+    """I return (||r||, ||v||) for checks"""
+    r, v = unpack_state(x)
+    return float(np.linalg.norm(r)), float(np.linalg.norm(v))
+
+
+def make_time_grid(t0: float, tf: float, dt: float) -> np.ndarray:
+    """build an inclusive time grid [t0, t0+dt, ..., tf]."""
+    if dt <= 0:
+        raise ValueError("dt must be > 0")
+    if tf <= t0:
+        raise ValueError("tf must be > t0")
+    n = int(np.floor((tf - t0) / dt))
+    t = t0 + dt * np.arange(n + 1, dtype=np.float64)
+    if t[-1] < tf - 0.5 * dt:
+        # include the last point if the rounding cut it off too early
+        t = np.hstack([t, np.array([tf], dtype=np.float64)])
+    else:
+        t[-1] = tf
+    return t
