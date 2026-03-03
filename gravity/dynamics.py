@@ -77,3 +77,23 @@ def dynamics_rhs(t: float, x: np.ndarray, L: int, model) -> np.ndarray:
 
     xdot = pack_state(v, a)
     return xdot
+
+# ============================================================
+# Integrator
+# ============================================================
+
+def step_rk4(t: float, x: np.ndarray, dt: float, L: int, model) -> np.ndarray:
+    """
+    RK4 (stable/simple for deterministic orbital propagation)
+    """
+    assert_state_shape(x)
+    if dt <= 0:
+        raise ValueError("dt must be > 0")
+
+    k1 = dynamics_rhs(t, x, L, model)
+    k2 = dynamics_rhs(t + 0.5 * dt, x + 0.5 * dt * k1, L, model)
+    k3 = dynamics_rhs(t + 0.5 * dt, x + 0.5 * dt * k2, L, model)
+    k4 = dynamics_rhs(t + dt, x + dt * k3, L, model)
+
+    x_next = x + (dt / 6.0) * (k1 + 2.0 * k2 + 2.0 * k3 + k4)
+    return np.asarray(x_next, dtype=np.float64).reshape(STATE_DIM,)
