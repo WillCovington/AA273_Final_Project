@@ -55,3 +55,25 @@ def assert_finite(x: np.ndarray, name: str = "x") -> None:
     """catch NaNs/Infs early so they don’t silently poison the simulation."""
     if not np.all(np.isfinite(x)):
         raise ValueError(f"{name} contains NaN/Inf.")
+    
+# ============================================================
+# Continuous dynamics (ODE)
+# ============================================================
+
+def dynamics_rhs(t: float, x: np.ndarray, L: int, model) -> np.ndarray:
+    """
+    Continuous-time dynamics:
+      r_dot = v
+      v_dot = a(r,t;L)
+
+    pull from the gravity model:
+      a = model.accel_inertial(r, t, L)
+    """
+    assert_state_shape(x)
+    r, v = unpack_state(x)
+
+    a = model.accel_inertial(r, t, L)  # match gravity_model.py
+    a = np.asarray(a, dtype=np.float64).reshape(3,)
+
+    xdot = pack_state(v, a)
+    return xdot
