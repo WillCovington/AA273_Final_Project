@@ -1,8 +1,11 @@
 """
 gravity/dynamics.py
 
+How motion evolves
+Given (r, t, dt, L, model) → returns x_next
 given r,t,L what gravity acceleration do I feel?
-this file uses that acceleration repeatedly to propagate the full 6D state:
+
+uses the acceleration to propagate the full 6D state:
 
     x = [rx, ry, rz, vx, vy, vz]
 
@@ -215,3 +218,42 @@ def make_time_grid(t0: float, tf: float, dt: float) -> np.ndarray:
     else:
         t[-1] = tf
     return t
+
+# ============================================================
+# smoke test
+# ============================================================
+
+if __name__ == "__main__":
+    # load gravity model
+    # build a circular-ish initial condition at 50 km altitude
+    # short propagation and print norms
+
+    from gravity_model import GravityModel 
+
+    model = GravityModel.from_npz()
+
+    # Simple ICs:
+    # position along +x, velocity along +y (standard "circular orbit" starter)
+    r_mag = model.r0_m + 50_000.0
+    mu = model.gm_m3_s2
+    v_circ = np.sqrt(mu / r_mag)
+
+    r0 = np.array([r_mag, 0.0, 0.0], dtype=np.float64)
+    v0 = np.array([0.0, v_circ, 0.0], dtype=np.float64)
+    x0 = pack_state(r0, v0)
+
+    # Simulate for ~10 minutes
+    t0 = 0.0
+    tf = 600.0
+    dt = 5.0
+    t_grid = make_time_grid(t0, tf, dt)
+
+    # Use truth L as whatever the file supports (660)
+    L = model.lmax_data
+
+    X = rollout(x0, t_grid, L, model, method="rk4", substeps=1)
+
+    rN, vN = state_norms(X[-1])
+    print("Final ||r|| [m]:", rN)
+    print("Final ||v|| [m/s]:", vN)
+    print("Done.")
