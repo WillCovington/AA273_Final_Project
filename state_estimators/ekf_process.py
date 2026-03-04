@@ -1,7 +1,7 @@
 # running through some function ideas
 import numpy as np
 from state_estimators.take_measurements import *
-from gravity.dynamics import propogate
+from gravity.dynamics import propagate
 
 
 def ekf(x0, P0, measurements, model, L_max, eps, Q, R):
@@ -49,7 +49,7 @@ def ekf_step(x, P, y, time_curr, time_prev, model, gs_loc, L_max, eps, Q, R):
     dt = time_curr - time_prev
     
     # Predict step
-    x_pred = propogate(x, time_prev, dt,L_max, model, method="rk4", substeps=1 )
+    x_pred = propagate(x, time_prev, dt,L_max, model, method="rk4", substeps=1 )
     A = calculate_A_finite_diff(dt, time_curr, x_pred[:3], L_max, model, eps)
     P_pred = A @ P @ A.T + Q
 
@@ -60,7 +60,7 @@ def ekf_step(x, P, y, time_curr, time_prev, model, gs_loc, L_max, eps, Q, R):
     y_hat = take_measurements_ekf(x_pred, gs_loc, time_curr, R=0, noise=False) # our ideal measurement from our estimate, returns range and range rate
 
     # need to filter out instances where the satellite isn't visible for some ground stations
-    filtered = filter_valid_measurements(y=y, y_hat=y_hat, C_full = C, R_full = R)
+    filtered = filter_valid_measurements(y=y, y_hat=y_hat, C=C, R_full = R)
     if filtered is None: # this basically means that none of the ground stations could see the satellite
         # if that's the case, we don't do an update step
         return x_pred, P_pred
