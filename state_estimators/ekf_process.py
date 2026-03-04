@@ -1,8 +1,16 @@
 # running through some function ideas
 import numpy as np
-from take_measurements import *
+from state_estimators.take_measurements import *
+
+# TODO:
+# make sure your measurement vector is the right size; right now I don't think it is
+# figure out the LCI conversions
 
 def ekf(x0, P0, measurements, L_max, eps, Q, R):
+    # Inputs:
+    # x0: our initial state (r, v) estimate (6x1)
+    # P0: our initial covariance (6x6)
+    # measurements: our set of measurements, each of which should have a timestamp t, measurement y (2,1), and a set of 
     x, P = x0.copy(), P0.copy()
     t_prev = measurements[0]["t"] # this is our zero-time -- probably just gonna be zero
 
@@ -11,7 +19,8 @@ def ekf(x0, P0, measurements, L_max, eps, Q, R):
     ts = [t_prev]
     for meas in measurements:
         t_k = meas["t"] # time of measurement
-        y_k = meas["y"] # actual measurement, range and range rate
+        # TODO: check on the dimensions of y_k
+        y_k = meas["y"] # actual measurement, range and range rate 
         gs_k = meas["gs"] # list of stations used for this measurement
         
         x, P = ekf_step(x, P, t_prev, t_k, y_k, gs_k, L_max, eps, Q, R)
