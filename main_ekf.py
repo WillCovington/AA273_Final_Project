@@ -1,8 +1,8 @@
 import numpy as np
 
 # importing everything over
-from .ground_stations import define_ground_station_locations
-from .ekf_fun import *
+from ground_stations import define_ground_station_locations
+from ekf_fun import *
 from gravity.dynamics import *
 from gravity.gravity_model import *
 
@@ -36,7 +36,7 @@ def main():
 
     # stations + measurement noise
     gs_locations = define_ground_station_locations(n=20, lat_max_deg=45, seed=seed)
-    print(gs_locations)
+    # print(gs_locations) just for testing
     sigma_rho = 5.0       # m
     sigma_rhodot = 0.05   # m/s
     elev_mask = 5.0       # deg
