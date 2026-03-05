@@ -44,7 +44,6 @@ def ekf_run(x0, P0, measurements, model, L_max, Q, R_full, eps_fd=5.0):
             K = P_pred @ Cv.T @ np.linalg.inv(S)
             x = x_pred + K @ innov
             P = (np.eye(6) - K @ Cv) @ P_pred
-
         ts.append(t_k)
         xs.append(x.copy())
         Ps.append(P.copy())

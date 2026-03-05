@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from ground_stations import *
 
 # we're gonna be doing a lot of plotting here, so I tried to include everything i cou=
 
@@ -82,63 +83,138 @@ def plot_truth_vs_est(ts, X_truth, Xhat, Phat, show_error=True):
         fig2.tight_layout()
 
     plt.show()
-    
 
-def plot_3d_trajectory(ts, X_truth, Xhat, equal_aspect=True, show_projections=False):
-    # plots our estimates and the truth trajectory in 3D for funsies
-    X_truth = np.asarray(X_truth)
-    Xhat = np.asarray(Xhat)
+def plot_trajectory_with_moon(X_truth, Xhat, model, moon_alpha=0.35):
 
     rT = X_truth[:, :3]
     rH = Xhat[:, :3]
 
-    fig = plt.figure(figsize=(10, 8))
-    ax = fig.add_subplot(111, projection="3d")
+    fig = plt.figure(figsize=(10,8))
+    ax = fig.add_subplot(111, projection='3d')
 
-    ax.plot(rT[:, 0], rT[:, 1], rT[:, 2], label="Truth")
-    ax.plot(rH[:, 0], rH[:, 1], rH[:, 2], label="Estimate")
+    # plot our actual trajectories
+    ax.plot(rT[:,0], rT[:,1], rT[:,2], label="Truth", linewidth=2)
+    ax.plot(rH[:,0], rH[:,1], rH[:,2], label="Estimate", linewidth=2, linestyle='--')
 
-    ax.scatter(rT[0, 0], rT[0, 1], rT[0, 2], marker="o", s=40, label="Truth start")
-    ax.scatter(rH[0, 0], rH[0, 1], rH[0, 2], marker="^", s=40, label="Est start")
+    # set up the moon time
+    r_moon = model.r0_m
 
+    u = np.linspace(0, 2*np.pi, 80)
+    v = np.linspace(0, np.pi, 40)
+
+    x = r_moon * np.outer(np.cos(u), np.sin(v))
+    y = r_moon * np.outer(np.sin(u), np.sin(v))
+    z = r_moon * np.outer(np.ones_like(u), np.cos(v))
+
+    ax.plot_surface(x, y, z, color="gray", alpha=moon_alpha, linewidth=0)
+
+    # ---- Labels ----
     ax.set_xlabel("x [m]")
     ax.set_ylabel("y [m]")
     ax.set_zlabel("z [m]")
-    ax.set_title("3D Trajectory (Truth vs EKF Estimate)")
-    ax.legend(loc="best")
+    ax.set_title("Satellite Orbit Around Moon")
 
-    if equal_aspect:
-        # Make axes roughly equal scale (matplotlib doesn't have a perfect built-in for 3D)
-        mins = np.minimum(rT.min(axis=0), rH.min(axis=0))
-        maxs = np.maximum(rT.max(axis=0), rH.max(axis=0))
-        centers = 0.5 * (mins + maxs)
-        spans = maxs - mins
-        span = float(np.max(spans))
-        ax.set_xlim(centers[0] - span/2, centers[0] + span/2)
-        ax.set_ylim(centers[1] - span/2, centers[1] + span/2)
-        ax.set_zlim(centers[2] - span/2, centers[2] + span/2)
+    ax.legend()
+
+    all_points = np.vstack((rT, rH, np.array([
+        [ r_moon,0,0],[-r_moon,0,0],
+        [0, r_moon,0],[0,-r_moon,0],
+        [0,0, r_moon],[0,0,-r_moon]
+    ])))
+
+    ax.set_xlim(all_points[:,0].min(), all_points[:,0].max())
+    ax.set_ylim(all_points[:,1].min(), all_points[:,1].max())
+    ax.set_zlim(all_points[:,2].min(), all_points[:,2].max())
+
+    # set axes equal
+    set_axes_equal(ax)
 
     plt.tight_layout()
     plt.show()
+    
+# Stuff for plotting the ground track
+def _split_dateline(lats, lons, jump_deg=180.0):
+    lats = np.asarray(lats); lons = np.asarray(lons)
+    segs = []
+    start = 0
+    for k in range(1, len(lons)):
+        if np.abs(lons[k] - lons[k-1]) > jump_deg:
+            segs.append((lats[start:k], lons[start:k]))
+            start = k
+    segs.append((lats[start:], lons[start:]))
+    return segs
 
-    if show_projections:
-        fig2, axs = plt.subplots(1, 3, figsize=(15, 4))
+def plot_ground_track(
+    ts,
+    X_truth,
+    Xhat=None,
+    img_path="Misc. Notes and Pictures\lroc_color_2k.jpg",
+    title="Ground Track (Moon-fixed lat/lon)",
+):
+    ts = np.asarray(ts, dtype=np.float64).reshape(-1,)
+    X_truth = np.asarray(X_truth, dtype=np.float64)
 
-        axs[0].plot(rT[:, 0], rT[:, 1], label="Truth")
-        axs[0].plot(rH[:, 0], rH[:, 1], label="Estimate")
-        axs[0].set_xlabel("x [m]"); axs[0].set_ylabel("y [m]"); axs[0].set_title("XY")
-        axs[0].grid(True)
+    # --- Convert truth to lat/lon ---
+    lat_T = np.zeros_like(ts)
+    lon_T = np.zeros_like(ts)
+    for k, t in enumerate(ts):
+        lat_T[k], lon_T[k] = inertial_to_latlon(X_truth[k, :3], float(t))
 
-        axs[1].plot(rT[:, 0], rT[:, 2], label="Truth")
-        axs[1].plot(rH[:, 0], rH[:, 2], label="Estimate")
-        axs[1].set_xlabel("x [m]"); axs[1].set_ylabel("z [m]"); axs[1].set_title("XZ")
-        axs[1].grid(True)
+    segs_T = _split_dateline(lat_T, lon_T)
 
-        axs[2].plot(rT[:, 1], rT[:, 2], label="Truth")
-        axs[2].plot(rH[:, 1], rH[:, 2], label="Estimate")
-        axs[2].set_xlabel("y [m]"); axs[2].set_ylabel("z [m]"); axs[2].set_title("YZ")
-        axs[2].grid(True)
+    # --- Convert estimate if provided ---
+    segs_H = None
+    if Xhat is not None:
+        Xhat = np.asarray(Xhat, dtype=np.float64)
+        lat_H = np.zeros_like(ts)
+        lon_H = np.zeros_like(ts)
+        for k, t in enumerate(ts):
+            lat_H[k], lon_H[k] = inertial_to_latlon(Xhat[k, :3], float(t))
+        segs_H = _split_dateline(lat_H, lon_H)
 
-        axs[0].legend(loc="best")
-        plt.tight_layout()
-        plt.show()
+    # --- Plot background image ---
+    img = plt.imread(img_path)
+
+    fig, ax = plt.subplots(figsize=(14, 6))
+    # Extent corresponds to lon [-180, 180], lat [-90, 90]
+    ax.imshow(img, extent=[-180, 180, -90, 90], origin="upper")
+
+    # --- Plot segments (truth) ---
+    for lats_seg, lons_seg in segs_T:
+        ax.plot(lons_seg, lats_seg, linewidth=2, label="Truth" if lats_seg is segs_T[0][0] else None)
+
+    # --- Plot estimate segments ---
+    if segs_H is not None:
+        for lats_seg, lons_seg in segs_H:
+            ax.plot(lons_seg, lats_seg, linewidth=2, linestyle="--",
+                    label="Estimate" if lats_seg is segs_H[0][0] else None)
+
+    ax.set_xlim(-180, 180)
+    ax.set_ylim(-90, 90)
+    ax.set_xlabel("Longitude [deg]")
+    ax.set_ylabel("Latitude [deg]")
+    ax.set_title(title)
+    ax.grid(True, alpha=0.3)
+    ax.legend(loc="upper right")
+    plt.tight_layout()
+    plt.show()
+    
+def set_axes_equal(ax):
+    # I'll be honest this helper function is from Chat
+    x_limits = ax.get_xlim3d()
+    y_limits = ax.get_ylim3d()
+    z_limits = ax.get_zlim3d()
+
+    x_range = abs(x_limits[1] - x_limits[0])
+    y_range = abs(y_limits[1] - y_limits[0])
+    z_range = abs(z_limits[1] - z_limits[0])
+
+    x_middle = np.mean(x_limits)
+    y_middle = np.mean(y_limits)
+    z_middle = np.mean(z_limits)
+
+    plot_radius = 0.5 * max([x_range, y_range, z_range])
+
+    ax.set_xlim3d([x_middle - plot_radius, x_middle + plot_radius])
+    ax.set_ylim3d([y_middle - plot_radius, y_middle + plot_radius])
+    ax.set_zlim3d([z_middle - plot_radius, z_middle + plot_radius])

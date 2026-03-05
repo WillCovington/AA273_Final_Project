@@ -15,6 +15,19 @@ def R_I_to_BF(t_s: float) -> np.ndarray:
     theta = MOON_OMEGA_RAD_S * (t_s - T0_S)
     return _rotz(theta)
 
+def inertial_to_latlon(r_I_m: np.ndarray, t_s: float):
+    # takes us Back from inertial to lat-long (useful for our ground track plotting)
+    r_I_m = np.asarray(r_I_m, dtype=np.float64).reshape(3,)
+    R_I2BF = R_I_to_BF(t_s)
+    r_BF = R_I2BF @ r_I_m
+
+    x, y, z = r_BF
+    r = np.linalg.norm(r_BF) + 1e-12
+
+    lon = np.degrees(np.arctan2(y, x))          # [-180, 180]
+    lat = np.degrees(np.arcsin(np.clip(z / r, -1.0, 1.0)))  # [-90, 90]
+    return lat, lon
+
 def define_ground_station_locations(n, lat_max_deg = 30.0, seed=None):
     # equally longitudinally spaced ground with some variance in latitude
     rng = np.random.default_rng(seed)

@@ -6,6 +6,8 @@ from ekf_fun import *
 from gravity.dynamics import *
 from gravity.gravity_model import *
 from plot import *
+from save_run import save_ekf_run
+
 
 def main():
     seed = 134
@@ -28,17 +30,17 @@ def main():
 
     # degrees
     L_truth = model.lmax_data
-    L_max = 600
+    L_max = 100
 
     # time grid (1 Hz)
     t_grid = make_time_grid(0.0, T_period * 0.8, 1.0) # depending on how long we want to simulate over, multiply T_period accordingly
 
     # truth trajectory
     X_truth = rollout(x0_truth, t_grid, L_truth, model)
+    print("---------------------------Propogation Finished---------------------------")
 
     # stations + measurement noise
-    gs_locations = define_ground_station_locations(n=20, lat_max_deg=45, seed=seed)
-    # print(gs_locations) just for testing
+    gs_locations = define_ground_station_locations(n=10, lat_max_deg=45, seed=seed)
     sigma_rho = 5.0       # m
     sigma_rhodot = 0.05   # m/s
     elev_mask = 5.0       # deg
@@ -67,14 +69,30 @@ def main():
     # run EKF
     ts, Xhat, Phat = ekf_run(x0, P0, measurements, model, L_max, Q, R_full, eps_fd=5.0)
 
-    print("Final estimate:", Xhat[-1])
-    print("Final truth   :", X_truth[-1])
-    print("Final pos err [m]:", np.linalg.norm(Xhat[-1,:3] - X_truth[-1,:3]))
-    print("Final vel err [m/s]:", np.linalg.norm(Xhat[-1,3:] - X_truth[-1,3:]))
+    # print("Final estimate:", Xhat[-1])
+    # print("Final truth   :", X_truth[-1])
+    # print("Final pos err [m]:", np.linalg.norm(Xhat[-1,:3] - X_truth[-1,:3]))
+    # print("Final vel err [m/s]:", np.linalg.norm(Xhat[-1,3:] - X_truth[-1,3:]))
+    
+    meta = {
+    "run_name": f"L{L_max}_Ngs{len(gs_locations)}_mask{elev_mask}_sigR{sigma_rho}_sigRdot{sigma_rhodot}",
+    "L_truth": int(L_truth),
+    "L_max": int(L_max),
+    "Ngs": int(len(gs_locations)),
+    "sigma_rho": float(sigma_rho),
+    "sigma_rhodot": float(sigma_rhodot),
+    "elev_mask_deg": float(elev_mask),
+    "Q_diag": np.diag(Q).tolist(),
+    "seed": int(seed),
+    }
+
+    path = save_ekf_run("runs", ts, X_truth, Xhat, Phat, meta)
+    print("Saved run to:", path)
     
     # now we plot everything
     plot_truth_vs_est(ts, X_truth, Xhat, Phat, show_error = True)
-    plot_3d_trajectory(ts, X_truth, Xhat, equal_aspect=True)
-
+    # plot_trajectory_with_moon(X_truth, Xhat, model)
+    plot_ground_track(ts, X_truth, Xhat)
+    
 if __name__ == "__main__":
     main()
