@@ -5,6 +5,7 @@ from ground_stations import define_ground_station_locations
 from ekf_fun import *
 from gravity.dynamics import *
 from gravity.gravity_model import *
+from plot import *
 
 def main():
     seed = 134
@@ -16,6 +17,7 @@ def main():
     r_mag = model.r0_m + alt_km * 1000.0
     mu = model.gm_m3_s2
     v_circ = np.sqrt(mu / r_mag)
+    T_period = 2 * np.pi * np.sqrt(r_mag**3 / mu) # time for one orbital period, in seconds
 
     # truth initial state
     x0_truth = np.array([r_mag, 0.0, 0.0, 0.0, v_circ, 0.0], dtype=np.float64)
@@ -29,7 +31,7 @@ def main():
     L_max = 600
 
     # time grid (1 Hz)
-    t_grid = make_time_grid(0.0, 600.0, 1.0)
+    t_grid = make_time_grid(0.0, T_period * 0.8, 1.0) # depending on how long we want to simulate over, multiply T_period accordingly
 
     # truth trajectory
     X_truth = rollout(x0_truth, t_grid, L_truth, model)
@@ -69,6 +71,10 @@ def main():
     print("Final truth   :", X_truth[-1])
     print("Final pos err [m]:", np.linalg.norm(Xhat[-1,:3] - X_truth[-1,:3]))
     print("Final vel err [m/s]:", np.linalg.norm(Xhat[-1,3:] - X_truth[-1,3:]))
+    
+    # now we plot everything
+    plot_truth_vs_est(ts, X_truth, Xhat, Phat, show_error = True)
+    plot_3d_trajectory(ts, X_truth, Xhat, equal_aspect=True)
 
 if __name__ == "__main__":
     main()
