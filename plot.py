@@ -149,7 +149,7 @@ def plot_trajectory_with_moon(X_truth, Xhat, model, moon_alpha=0.35, save_dir=No
         fig.savefig(Path(save_dir) / "3d_orbit.png", dpi=200)
     
     if save_dir is None:
-        plt.show()
+        plt.show(fig)
     else:
         plt.close(fig)
         
@@ -224,7 +224,9 @@ def plot_ground_track(
         fig.savefig(Path(save_dir) / "ground_track.png", dpi=200)
     
     if save_dir is None:
-        plt.show()
+        plt.show(fig)
+    else:
+        plt.close(fig)
     
 def set_axes_equal(ax):
     # I'll be honest this helper function is from Chat
