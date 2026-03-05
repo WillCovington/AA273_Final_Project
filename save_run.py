@@ -1,29 +1,33 @@
 import numpy as np
 import json
 from pathlib import Path
-from datetime import datetime
 
-def save_ekf_run(out_dir, ts, X_truth, Xhat, Phat, meta: dict):
-    # takes one of our EKF runs and saves it for later analysis
-    out_dir = Path(out_dir)
-    out_dir.mkdir(parents=True, exist_ok=True)
+def save_ekf_run(date_str, runname, ts, X_truth, Xhat, Phat, meta: dict, out_root="runs"):
+    """
+    Saves:
+      runs/<date_str>/<runname>/<runname>.npz
+      runs/<date_str>/<runname>/figures/   (created empty)
+    """
+    out_root = Path(out_root)
+    run_dir = out_root / date_str / runname
+    fig_dir = run_dir / "figures"
+    run_dir.mkdir(parents=True, exist_ok=True)
+    fig_dir.mkdir(parents=True, exist_ok=True)
 
     ts = np.asarray(ts, dtype=np.float64)
     X_truth = np.asarray(X_truth, dtype=np.float64)
     Xhat = np.asarray(Xhat, dtype=np.float64)
-    P = np.stack(Phat, axis=0).astype(np.float64)   # (K,6,6)
+
+    # ✅ Important: store Phat as (K,6,6) array
+    P = np.stack(Phat, axis=0).astype(np.float64)
 
     meta = dict(meta)
-    meta["saved_utc"] = datetime.utcnow().isoformat() + "Z"
+    meta["date_dir"] = date_str
+    meta["runname"] = runname
 
-    fname = meta.get("run_name", None)
-    if fname is None:
-        fname = datetime.utcnow().strftime("ekf_run_%Y%m%d_%H%M%S")
-
-    path = out_dir / f"{fname}.npz"
-
+    npz_path = run_dir / f"{runname}.npz"
     np.savez_compressed(
-        path,
+        npz_path,
         ts=ts,
         X_truth=X_truth,
         Xhat=Xhat,
@@ -31,4 +35,4 @@ def save_ekf_run(out_dir, ts, X_truth, Xhat, Phat, meta: dict):
         meta_json=json.dumps(meta, indent=2),
     )
 
-    return str(path)
+    return str(npz_path), str(fig_dir)

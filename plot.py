@@ -1,10 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from ground_stations import *
+from pathlib import Path
 
 # we're gonna be doing a lot of plotting here, so I tried to include everything i cou=
 
-def plot_truth_vs_est(ts, X_truth, Xhat, Phat, show_error=True):
+def plot_truth_vs_est(ts, X_truth, Xhat, Phat, show_error=True, save_dir=None):
     # takes in our times, true state, estimated state, and covariance estimates and returns the 
 
     ts = np.asarray(ts).reshape(-1,)
@@ -56,6 +57,10 @@ def plot_truth_vs_est(ts, X_truth, Xhat, Phat, show_error=True):
     axes1[0].legend(loc="best")
     fig1.suptitle("EKF: Truth vs Estimate with 95% Confidence Bounds", y=0.98)
     fig1.tight_layout()
+    
+    if save_dir is not None:
+        Path(save_dir).mkdir(parents=True, exist_ok=True)
+        fig1.savefig(Path(save_dir) / "truth_vs_est.png", dpi=200)
 
     # Just the estimation error (estimate minus truth)
     if show_error:
@@ -81,10 +86,18 @@ def plot_truth_vs_est(ts, X_truth, Xhat, Phat, show_error=True):
         axes2[0].legend(loc="best")
         fig2.suptitle("EKF: Estimation Error with ±95% Bounds", y=0.98)
         fig2.tight_layout()
+        
+        if save_dir is not None:
+            fig2.savefig(Path(save_dir) / "estimation_error.png", dpi=200)
+    
+    if save_dir is None:
+        plt.show()
+    else:
+        plt.close(fig1)
+        if show_error:
+            plt.close(fig2)
 
-    plt.show()
-
-def plot_trajectory_with_moon(X_truth, Xhat, model, moon_alpha=0.35):
+def plot_trajectory_with_moon(X_truth, Xhat, model, moon_alpha=0.35, save_dir=None):
 
     rT = X_truth[:, :3]
     rH = Xhat[:, :3]
@@ -130,8 +143,16 @@ def plot_trajectory_with_moon(X_truth, Xhat, model, moon_alpha=0.35):
     set_axes_equal(ax)
 
     plt.tight_layout()
-    plt.show()
     
+    if save_dir is not None:
+        Path(save_dir).mkdir(parents=True, exist_ok=True)
+        fig.savefig(Path(save_dir) / "3d_orbit.png", dpi=200)
+    
+    if save_dir is None:
+        plt.show()
+    else:
+        plt.close(fig)
+        
 # Stuff for plotting the ground track
 def _split_dateline(lats, lons, jump_deg=180.0):
     lats = np.asarray(lats); lons = np.asarray(lons)
@@ -148,8 +169,9 @@ def plot_ground_track(
     ts,
     X_truth,
     Xhat=None,
-    img_path="Misc. Notes and Pictures\lroc_color_2k.jpg",
+    img_path="Misc. Notes and Pictures/lroc_color_2k.jpg",
     title="Ground Track (Moon-fixed lat/lon)",
+    save_dir = None
 ):
     ts = np.asarray(ts, dtype=np.float64).reshape(-1,)
     X_truth = np.asarray(X_truth, dtype=np.float64)
@@ -197,7 +219,12 @@ def plot_ground_track(
     ax.grid(True, alpha=0.3)
     ax.legend(loc="upper right")
     plt.tight_layout()
-    plt.show()
+    if save_dir is not None:
+        Path(save_dir).mkdir(parents=True, exist_ok=True)
+        fig.savefig(Path(save_dir) / "ground_track.png", dpi=200)
+    
+    if save_dir is None:
+        plt.show()
     
 def set_axes_equal(ax):
     # I'll be honest this helper function is from Chat

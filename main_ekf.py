@@ -10,6 +10,7 @@ from save_run import save_ekf_run
 
 
 def main():
+    date_str = "03-05-2026" # NOTE: we gotta update this every day
     seed = 134
     rng = np.random.default_rng(seed)
 
@@ -20,9 +21,10 @@ def main():
     mu = model.gm_m3_s2
     v_circ = np.sqrt(mu / r_mag)
     T_period = 2 * np.pi * np.sqrt(r_mag**3 / mu) # time for one orbital period, in seconds
+    prop_duration = 5.0 # how many periods we want to propogate over
 
     # truth initial state
-    x0_truth = np.array([r_mag, 0.0, 0.0, 0.0, v_circ, 0.0], dtype=np.float64)
+    x0_truth = np.array([r_mag, 0.0, 0.0, 0.0, 0.0, v_circ], dtype=np.float64)
 
     # EKF initial guess (optionally perturbed)
     x0 = x0_truth.copy()
@@ -33,7 +35,7 @@ def main():
     L_max = 100
 
     # time grid (1 Hz)
-    t_grid = make_time_grid(0.0, T_period * 0.8, 1.0) # depending on how long we want to simulate over, multiply T_period accordingly
+    t_grid = make_time_grid(0.0, T_period * prop_duration, 1.0) # depending on how long we want to simulate over, multiply T_period accordingly
 
     # truth trajectory
     X_truth = rollout(x0_truth, t_grid, L_truth, model)
@@ -69,30 +71,27 @@ def main():
     # run EKF
     ts, Xhat, Phat = ekf_run(x0, P0, measurements, model, L_max, Q, R_full, eps_fd=5.0)
 
-    # print("Final estimate:", Xhat[-1])
-    # print("Final truth   :", X_truth[-1])
-    # print("Final pos err [m]:", np.linalg.norm(Xhat[-1,:3] - X_truth[-1,:3]))
-    # print("Final vel err [m/s]:", np.linalg.norm(Xhat[-1,3:] - X_truth[-1,3:]))
+    runname = f"L{L_max}_Ngs{len(gs_locations)}_T{prop_duration*T_period}_alt{alt_km}_seed{seed}"
     
     meta = {
-    "run_name": f"L{L_max}_Ngs{len(gs_locations)}_mask{elev_mask}_sigR{sigma_rho}_sigRdot{sigma_rhodot}",
-    "L_truth": int(L_truth),
-    "L_max": int(L_max),
-    "Ngs": int(len(gs_locations)),
-    "sigma_rho": float(sigma_rho),
-    "sigma_rhodot": float(sigma_rhodot),
-    "elev_mask_deg": float(elev_mask),
-    "Q_diag": np.diag(Q).tolist(),
-    "seed": int(seed),
+        "L_truth": int(L_truth),
+        "L_max": int(L_max),
+        "Ngs": int(len(gs_locations)),
+        "sigma_rho": float(sigma_rho),
+        "sigma_rhodot": float(sigma_rhodot),
+        "elev_mask_deg": float(elev_mask),
+        "Q_diag": np.diag(Q).tolist(),
+        "seed": int(seed),
     }
 
-    path = save_ekf_run("runs", ts, X_truth, Xhat, Phat, meta)
-    print("Saved run to:", path)
+    npz_path, fig_dir = save_ekf_run(date_str, runname, ts, X_truth, Xhat, Phat, meta)
+    print("Saved:", npz_path)
+    print("Figures dir:", fig_dir)
     
-    # now we plot everything
-    plot_truth_vs_est(ts, X_truth, Xhat, Phat, show_error = True)
-    # plot_trajectory_with_moon(X_truth, Xhat, model)
-    plot_ground_track(ts, X_truth, Xhat)
+    # now we plot everything and save the images as png's
+    plot_truth_vs_est(ts, X_truth, Xhat, Phat, show_error = True, save_dir=fig_dir)
+    plot_trajectory_with_moon(X_truth, Xhat, model, save_dir=fig_dir)
+    plot_ground_track(ts, X_truth, Xhat, save_dir=fig_dir)
     
 if __name__ == "__main__":
     main()
