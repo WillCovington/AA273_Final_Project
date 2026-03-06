@@ -70,9 +70,8 @@ def ukf_predict(
     beta=2.0,
     kappa=0.0,
 ):
-    """
-    UKF prediction step.
-    """
+    # the actual prediction portion of our UKF
+    # takes in our previous state and covariance estimates, our current and previous time step, our model, our noise matrix, and some of our general ukf parameters and moves us one estimation step forwards
     x = np.asarray(x, dtype=np.float64).reshape(-1,)
     P = np.asarray(P, dtype=np.float64)
     Q = np.asarray(Q, dtype=np.float64)
@@ -124,13 +123,8 @@ def ukf_update(
     sigma_rho_for_pred: float = 0.0,
     sigma_rhodot_for_pred: float = 0.0,
 ):
-    """
-    UKF measurement update.
-
-    Uses the same measurement convention as your EKF:
-      y = [rho1, rhodot1, rho2, rhodot2, ...]
-    with NaNs for invisible stations in the actual measurement vector.
-    """
+    # UKF measurement update step
+    # takes a measurement of our estimated state and comapres it against the actual measurement we received
     x_pred = np.asarray(x_pred, dtype=np.float64).reshape(-1,)
     P_pred = np.asarray(P_pred, dtype=np.float64)
     y_k = np.asarray(y_k, dtype=np.float64).reshape(-1,)
@@ -211,6 +205,10 @@ def ukf_update(
     return x_upd, P_upd, y_hat_full, update_info
 
 
+import numpy as np
+import time
+
+
 def ukf_run(
     x0,
     P0,
@@ -223,9 +221,6 @@ def ukf_run(
     beta=2.0,
     kappa=0.0,
 ):
-    """
-    Full UKF loop, analogous to your EKF.
-    """
     x = np.asarray(x0, dtype=np.float64).reshape(6,)
     P = np.asarray(P0, dtype=np.float64).reshape(6, 6)
 
@@ -236,34 +231,169 @@ def ukf_run(
     t_prev = float(measurements[0]["t"])
     gs_all = measurements[0]["gs"]
 
+    timing = {
+        "sigma_points_s": [],
+        "propagate_s": [],
+        "predict_cov_s": [],
+        "meas_model_s": [],
+        "update_s": [],
+        "total_step_s": [],
+        "n_valid_meas": [],
+    }
+
     for meas in measurements[1:]:
         t_k = float(meas["t"])
         y_k = np.asarray(meas["y"], dtype=np.float64).reshape(-1,)
+        dt = t_k - t_prev
 
-        # Predict
-        x_pred, P_pred, Xsig_pred, Wm, Wc = ukf_predict(
-            x, P, t_prev, t_k,
-            model=model,
-            L_max=L_max,
-            Q=Q,
+        t_step_0 = time.perf_counter()
+
+        # -------------------------------------------------
+        # 1) Sigma point generation
+        # -------------------------------------------------
+        t0 = time.perf_counter()
+        Xsig, Wm, Wc = generate_sigma_points(
+            x, P,
             alpha=alpha,
             beta=beta,
-            kappa=kappa,
+            kappa=kappa
+        )
+        t1 = time.perf_counter()
+
+        # -------------------------------------------------
+        # 2) Propagate sigma points
+        # -------------------------------------------------
+        t2 = time.perf_counter()
+        nsig = Xsig.shape[0]
+        Xsig_pred = np.zeros_like(Xsig)
+
+        for i in range(nsig):
+            Xsig_pred[i] = propagate(
+                Xsig[i],
+                t_prev,
+                dt,
+                L_max,
+                model,
+                method="rk4",
+                substeps=1,
+            )
+        t3 = time.perf_counter()
+
+        # -------------------------------------------------
+        # 3) Predicted mean/covariance
+        # -------------------------------------------------
+        t4 = time.perf_counter()
+
+        x_pred = np.sum(Wm[:, None] * Xsig_pred, axis=0)
+
+        P_pred = np.zeros((6, 6), dtype=np.float64)
+        for i in range(nsig):
+            dx = (Xsig_pred[i] - x_pred).reshape(6, 1)
+            P_pred += Wc[i] * (dx @ dx.T)
+
+        P_pred += Q
+        P_pred = 0.5 * (P_pred + P_pred.T)
+
+        t5 = time.perf_counter()
+
+        # -------------------------------------------------
+        # 4) Measurement model timing
+        #    (predict nominal + sigma-point measurements)
+        # -------------------------------------------------
+        t6 = time.perf_counter()
+
+        y_hat_full = take_measurements(
+            x_pred,
+            gs_all,
+            t_k,
+            model,
+            sigma_rho=0.0,
+            sigma_rhodot=0.0,
+            elev_mask_deg=0.0,
+            add_noise=False,
         )
 
-        # Update
-        x, P, _, _ = ukf_update(
-            x_pred, P_pred, Xsig_pred, Wm, Wc,
-            y_k=y_k,
-            t_k=t_k,
-            model=model,
-            gs_all=gs_all,
-            R_full=R_full,
-        )
+        valid = np.isfinite(y_k)
+        if not np.any(valid):
+            # no update
+            x = x_pred
+            P = P_pred
+            n_valid = 0
+
+            t7 = time.perf_counter()
+            t8 = t7  # no update work
+        else:
+            yv = y_k[valid]
+            yhatv_nom = y_hat_full[valid]
+            Rv = R_full[np.ix_(valid, valid)]
+            m = yv.size
+            n_valid = int(m)
+
+            Ysig = np.zeros((nsig, m), dtype=np.float64)
+            for i in range(nsig):
+                yi_full = take_measurements(
+                    Xsig_pred[i],
+                    gs_all,
+                    t_k,
+                    model,
+                    sigma_rho=0.0,
+                    sigma_rhodot=0.0,
+                    elev_mask_deg=0.0,
+                    add_noise=False,
+                )
+                Ysig[i] = yi_full[valid]
+
+            t7 = time.perf_counter()
+
+            # -------------------------------------------------
+            # 5) Update
+            # -------------------------------------------------
+            t8 = time.perf_counter()
+
+            y_pred = np.sum(Wm[:, None] * Ysig, axis=0)
+
+            S = np.zeros((m, m), dtype=np.float64)
+            Pxy = np.zeros((6, m), dtype=np.float64)
+
+            for i in range(nsig):
+                dy = (Ysig[i] - y_pred).reshape(m, 1)
+                dx = (Xsig_pred[i] - x_pred).reshape(6, 1)
+                S += Wc[i] * (dy @ dy.T)
+                Pxy += Wc[i] * (dx @ dy.T)
+
+            S += Rv
+            S = 0.5 * (S + S.T)
+
+            K = Pxy @ np.linalg.inv(S)
+
+            innov = yv - y_pred
+            x = x_pred + K @ innov
+            P = P_pred - K @ S @ K.T
+            P = 0.5 * (P + P.T)
+
+            t9 = time.perf_counter()
+
+        t_step_1 = time.perf_counter()
+
+        # save timings
+        timing["sigma_points_s"].append(t1 - t0)
+        timing["propagate_s"].append(t3 - t2)
+        timing["predict_cov_s"].append(t5 - t4)
+        timing["meas_model_s"].append(t7 - t6)
+        timing["update_s"].append((t9 - t8) if np.any(valid) else 0.0)
+        timing["total_step_s"].append(t_step_1 - t_step_0)
+        timing["n_valid_meas"].append(n_valid)
 
         ts.append(t_k)
         xs.append(x.copy())
         Ps.append(P.copy())
         t_prev = t_k
 
-    return np.asarray(ts), np.vstack(xs), np.stack(Ps, axis=0)
+    ts = np.asarray(ts, dtype=np.float64)
+    Xhat = np.vstack(xs).astype(np.float64)
+    Phat = np.stack(Ps, axis=0).astype(np.float64)
+
+    for k in timing:
+        timing[k] = np.asarray(timing[k], dtype=np.float64)
+
+    return ts, Xhat, Phat, timing

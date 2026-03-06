@@ -2,7 +2,7 @@ import numpy as np
 import json
 from pathlib import Path
 
-def save_ekf_run(date_str, runname, ts, X_truth, Xhat, Phat, meta: dict, timing = None, out_root="runs"):
+def save_run(date_str, runname, ts, X_truth, Xhat, Phat, meta: dict, timing = None, out_root="runs"):
     """
     Saves:
       runs/<date_str>/<runname>/<runname>.npz

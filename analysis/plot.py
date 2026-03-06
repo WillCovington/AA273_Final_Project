@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from ground_stations import *
 from pathlib import Path
+from matplotlib.collections import LineCollection
 
 # we're gonna be doing a lot of plotting here, so I tried to include everything i cou=
 
@@ -165,13 +166,50 @@ def _split_dateline(lats, lons, jump_deg=180.0):
     segs.append((lats[start:], lons[start:]))
     return segs
 
+def _add_colormapped_track(ax, lats, lons, cmap="viridis", linewidth=2.0, label=None):
+    """
+    Add a single track segment to ax using LineCollection.
+    Color varies smoothly from start to end of the segment.
+    """
+    lats = np.asarray(lats, dtype=np.float64)
+    lons = np.asarray(lons, dtype=np.float64)
+
+    if len(lats) < 2:
+        return None
+
+    points = np.column_stack((lons, lats))
+    segments = np.stack([points[:-1], points[1:]], axis=1)
+
+    # color parameter runs from 0 -> 1 across segments
+    cvals = np.linspace(0.0, 1.0, len(segments))
+
+    lc = LineCollection(
+        segments,
+        cmap=cmap,
+        linewidths=linewidth,
+    )
+    lc.set_array(cvals)
+    ax.add_collection(lc)
+
+    # fake handle for legend
+    if label is not None:
+        ax.plot([], [], color=plt.get_cmap(cmap)(0.8), linewidth=linewidth, label=label)
+
+    return lc
+
+
 def plot_ground_track(
     ts,
     X_truth,
     Xhat=None,
+    gs_locations=None,
     img_path="Misc. Notes and Pictures/lroc_color_2k.jpg",
     title="Ground Track (Moon-fixed lat/lon)",
-    save_dir = None
+    save_dir=None,
+    truth_cmap="viridis",
+    est_cmap="plasma",
+    linewidth=2.0,
+    show_colorbar=False,
 ):
     ts = np.asarray(ts, dtype=np.float64).reshape(-1,)
     X_truth = np.asarray(X_truth, dtype=np.float64)
@@ -194,22 +232,60 @@ def plot_ground_track(
             lat_H[k], lon_H[k] = inertial_to_latlon(Xhat[k, :3], float(t))
         segs_H = _split_dateline(lat_H, lon_H)
 
-    # --- Plot background image ---
+    # --- Background image ---
     img = plt.imread(img_path)
 
     fig, ax = plt.subplots(figsize=(14, 6))
-    # Extent corresponds to lon [-180, 180], lat [-90, 90]
     ax.imshow(img, extent=[-180, 180, -90, 90], origin="upper")
 
-    # --- Plot segments (truth) ---
-    for lats_seg, lons_seg in segs_T:
-        ax.plot(lons_seg, lats_seg, linewidth=2, label="Truth" if lats_seg is segs_T[0][0] else None)
+    last_lc_truth = None
+    for i, (lats_seg, lons_seg) in enumerate(segs_T):
+        lc = _add_colormapped_track(
+            ax,
+            lats_seg,
+            lons_seg,
+            cmap=truth_cmap,
+            linewidth=linewidth,
+            label="Truth" if i == 0 else None,
+        )
+        if lc is not None:
+            last_lc_truth = lc
 
-    # --- Plot estimate segments ---
+    last_lc_est = None
     if segs_H is not None:
-        for lats_seg, lons_seg in segs_H:
-            ax.plot(lons_seg, lats_seg, linewidth=2, linestyle="--",
-                    label="Estimate" if lats_seg is segs_H[0][0] else None)
+        for i, (lats_seg, lons_seg) in enumerate(segs_H):
+            lc = _add_colormapped_track(
+                ax,
+                lats_seg,
+                lons_seg,
+                cmap=est_cmap,
+                linewidth=linewidth,
+                label="Estimate" if i == 0 else None,
+            )
+            if lc is not None:
+                last_lc_est = lc
+
+    # --- Ground stations ---
+    if gs_locations is not None:
+        gs_lats = [lat for lat, lon in gs_locations]
+        gs_lons = [lon if lon <= 180 else lon - 360 for lat, lon in gs_locations]
+
+        ax.scatter(
+            gs_lons,
+            gs_lats,
+            s=55,
+            marker="^",
+            color="red",
+            edgecolors="black",
+            linewidths=0.6,
+            label="Ground Stations",
+            zorder=5,
+        )
+
+    # mark latest positions
+    ax.scatter(lon_T[-1], lat_T[-1], s=50, color="white", edgecolors="black", zorder=6)
+    if Xhat is not None:
+        ax.scatter(lon_H[-1], lat_H[-1], s=50, color="yellow", edgecolors="black", zorder=6)
 
     ax.set_xlim(-180, 180)
     ax.set_ylim(-90, 90)
@@ -218,15 +294,19 @@ def plot_ground_track(
     ax.set_title(title)
     ax.grid(True, alpha=0.3)
     ax.legend(loc="upper right")
+
+    if show_colorbar and last_lc_truth is not None:
+        cbar = fig.colorbar(last_lc_truth, ax=ax)
+        cbar.set_label("Track progression")
+
     plt.tight_layout()
+
     if save_dir is not None:
         Path(save_dir).mkdir(parents=True, exist_ok=True)
         fig.savefig(Path(save_dir) / "ground_track.png", dpi=200)
-    
-    if save_dir is None:
-        plt.show(fig)
-    else:
         plt.close(fig)
+    else:
+        plt.show()
     
 def set_axes_equal(ax):
     # I'll be honest this helper function is from Chat
