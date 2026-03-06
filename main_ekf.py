@@ -18,15 +18,16 @@ def main():
 
 
     ##################### SETTING UP OUR TRUTH MODEL #####################
-    alt_km = 50.0
+    alt_km = 300.0
     r_mag = model.r0_m + alt_km * 1000.0
     mu = model.gm_m3_s2
     v_circ = np.sqrt(mu / r_mag)
     T_period = 2 * np.pi * np.sqrt(r_mag**3 / mu) # time for one orbital period, in seconds
-    prop_duration = 5.0 # how many periods we want to propogate over SET TO 5 LATER
+    prop_duration = 0.5 # how many periods we want to propogate over SET TO 5.0 LATER
 
     # truth initial state
-    x0_truth = np.array([r_mag, 0.0, 0.0, 0.0, 0.0, v_circ], dtype=np.float64)
+    # NOTE: hi this is Will, I'm just fucking around with numbers real quick, don't mind me
+    x0_truth = np.array([r_mag, 0.0, 0.0, 0.0, v_circ/2.0, v_circ], dtype=np.float64)
     
     # time grid (1 Hz)
     t_grid = make_time_grid(0.0, T_period * prop_duration, 1.0) # depending on how long we want to simulate over, multiply T_period accordingly
@@ -40,7 +41,7 @@ def main():
     ##################### SETTING UP OUR MEASUREMENTS #####################
     
     # stations + measurement noise
-    gs_locations = define_ground_station_locations(n=10, lat_max_deg=45, seed=seed)
+    gs_locations = define_ground_station_locations(n=20, lat_max_deg=45, seed=seed)
     sigma_rho = 5.0       # m
     sigma_rhodot = 0.05   # m/s
     elev_mask = 5.0       # deg
