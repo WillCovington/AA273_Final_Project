@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from ground_stations import *
+from ground_stations.ground_stations import *
 from pathlib import Path
 from matplotlib.collections import LineCollection
 

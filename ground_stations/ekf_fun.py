@@ -1,5 +1,5 @@
 import numpy as np
-from ground_stations import *
+from ground_stations.ground_stations import *
 from gravity.dynamics import *
 from gravity.gravity_model import *
 import time

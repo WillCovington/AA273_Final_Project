@@ -1,8 +1,8 @@
 import numpy as np
 
 # importing everything over
-from ground_stations import define_ground_station_locations
-from ekf_fun import *
+from ground_stations.ground_stations import define_ground_station_locations
+from ground_stations.ekf_fun import *
 from gravity.dynamics import *
 from gravity.gravity_model import *
 from analysis.plot import *

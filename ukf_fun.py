@@ -1,7 +1,7 @@
 import numpy as np
 
 from gravity.dynamics import propagate
-from ekf_fun import take_measurements, filter_valid
+from ground_stations.ekf_fun import take_measurements, filter_valid
 
 
 # this one symmetrizes our array P because otherwise things get tricky

@@ -1,8 +1,8 @@
 import numpy as np
 
 # importing everything over
-from ground_stations import define_ground_station_locations
-from ekf_fun import build_R_full, take_measurements
+from ground_stations.ground_stations import define_ground_station_locations
+from ground_stations.ekf_fun import build_R_full, take_measurements
 from ukf_fun import ukf_run
 from gravity.dynamics import make_time_grid, rollout
 from gravity.gravity_model import GravityModel

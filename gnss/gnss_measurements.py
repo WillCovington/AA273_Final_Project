@@ -1,5 +1,5 @@
 import numpy as np
-from gnss_satellites import gnss_state_inertial, is_visible_gnss, R_MOON
+from gnss.gnss_satellites import gnss_state_inertial, is_visible_gnss, R_MOON
 
 
 def build_R_full_gnss(Ntx, sigma_rho, sigma_rhodot):
