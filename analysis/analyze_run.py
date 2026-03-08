@@ -1,8 +1,8 @@
 import numpy as np
 import json
 
-from metrics import position_rmse, velocity_rmse, nees_series
-from plot import plot_truth_vs_est, plot_trajectory_with_moon, plot_ground_track
+from analysis.metrics import position_rmse, velocity_rmse, nees_series
+from analysis.plot import plot_truth_vs_est, plot_trajectory_with_moon, plot_ground_track
 
 def load_run(path):
     data = np.load(path, allow_pickle=True)

@@ -5,8 +5,8 @@ from ground_stations import define_ground_station_locations
 from ekf_fun import *
 from gravity.dynamics import *
 from gravity.gravity_model import *
-from plot import *
-from save_run import *
+from analysis.plot import *
+from analysis.save_run import *
 
 # if this works how I think it should, we only need to propogate the dynamics once before we get into doing the filter for each L truncation
 def main():

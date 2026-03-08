@@ -1,0 +1,27 @@
+{
+  "run_name": "ukf_sweep_L20_Ngs20_alt300.0_T1.0per_seed134",
+  "filter_type": "UKF",
+  "seed": 134,
+  "alt_km": 300.0,
+  "prop_duration_periods": 1.0,
+  "dt_s": 1.0,
+  "Ngs": 20,
+  "sigma_rho": 5.0,
+  "sigma_rhodot": 0.05,
+  "elev_mask_deg": 5.0,
+  "L_truth": 660,
+  "L_max": 20,
+  "Q_diag": [
+    1e-06,
+    1e-06,
+    1e-06,
+    1e-06,
+    1e-06,
+    1e-06
+  ],
+  "alpha": 0.001,
+  "beta": 2.0,
+  "kappa": 0.0,
+  "date_dir": "03-06-2026",
+  "runname": "ukf_sweep_L20_Ngs20_alt300.0_T1.0per_seed134"
+}

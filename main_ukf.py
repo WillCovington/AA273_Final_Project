@@ -6,8 +6,9 @@ from ekf_fun import build_R_full, take_measurements
 from ukf_fun import ukf_run
 from gravity.dynamics import make_time_grid, rollout
 from gravity.gravity_model import GravityModel
-from plot import plot_truth_vs_est, plot_trajectory_with_moon, plot_ground_track
-from save_run import *
+from analysis.plot import plot_truth_vs_est, plot_trajectory_with_moon, plot_ground_track
+from analysis.save_run import *
+from analysis.sweep_report import make_sweep_report
 
 
 def main():
@@ -23,14 +24,14 @@ def main():
     mu = model.gm_m3_s2
     v_circ = np.sqrt(mu / r_mag)
     T_period = 2 * np.pi * np.sqrt(r_mag**3 / mu)   # orbital period [s]
-    prop_duration = 0.5   # number of orbital periods
+    prop_duration = 1.0   # number of orbital periods
 
     # truth initial state
     x0_truth = np.array([r_mag, 0.0, 0.0, 0.0, v_circ / 2.0, v_circ], dtype=np.float64)
 
     # time grid 
-    dt = 5.0 # step propogation [s]
-    t_grid = make_time_grid(0.0, T_period * prop_duration, 5.0)
+    dt = 10.0 # step propogation [s], make larger for faster runs
+    t_grid = make_time_grid(0.0, T_period * prop_duration, dt)
 
     L_truth = model.lmax_data
 
@@ -137,6 +138,8 @@ def main():
         plot_trajectory_with_moon(X_truth, Xhat, model, save_dir=fig_dir)
         plot_ground_track(ts, X_truth, Xhat, gs_locations = gs_locations, truth_cmap="viridis", est_cmap="plasma", show_colorbar=True, save_dir=fig_dir)
 
+    # once we've finished doing all of our runs, we go ahead and take that data and plot it
+    make_sweep_report(date_dir = "runs/03-06-2026/ukf_test_sweep", save_path = "runs/03-06-2026/sweep_report.png", show=True, pos_requirement_m = 10.0)
 
 if __name__ == "__main__":
     main()
