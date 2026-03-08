@@ -1,0 +1,23 @@
+{
+  "run_name": "sweep_L5_Ngs10_alt50.0_T5.0per_seed134",
+  "seed": 134,
+  "alt_km": 50.0,
+  "prop_duration_periods": 5.0,
+  "dt_s": 1.0,
+  "Ngs": 10,
+  "sigma_rho": 5.0,
+  "sigma_rhodot": 0.05,
+  "elev_mask_deg": 5.0,
+  "L_truth": 660,
+  "L_max": 5,
+  "Q_diag": [
+    1e-06,
+    1e-06,
+    1e-06,
+    1e-06,
+    1e-06,
+    1e-06
+  ],
+  "date_dir": "03-05-2026",
+  "runname": "sweep_L5_Ngs10_alt50.0_T5.0per_seed134"
+}
