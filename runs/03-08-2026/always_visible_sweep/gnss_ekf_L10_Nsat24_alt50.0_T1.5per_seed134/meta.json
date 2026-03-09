@@ -1,0 +1,23 @@
+{
+  "run_name": "gnss_ekf_L10_Nsat24_alt50.0_T1.5per_seed134",
+  "filter_type": "EKF_GNSS",
+  "seed": 134,
+  "alt_km": 50.0,
+  "prop_duration_periods": 1.5,
+  "dt_s": 1.0,
+  "Nsat": 24,
+  "sigma_rho": 5.0,
+  "sigma_rhodot": 0.05,
+  "L_truth": 660,
+  "L_max": 10,
+  "Q_diag": [
+    1e-06,
+    1e-06,
+    1e-06,
+    1e-06,
+    1e-06,
+    1e-06
+  ],
+  "date_dir": "03-08-2026",
+  "runname": "gnss_ekf_L10_Nsat24_alt50.0_T1.5per_seed134"
+}
