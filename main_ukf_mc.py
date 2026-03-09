@@ -2,7 +2,8 @@ import numpy as np
 from pathlib import Path
 
 from ground_stations import define_ground_station_locations
-from ground_stations.ekf_fun import *
+from ukf_fun import *
+from ground_stations.ekf_fun import build_R_full
 from gravity.dynamics import *
 from gravity.gravity_model import *
 from analysis.plot import *
@@ -84,14 +85,14 @@ def save_mc_summary(
 
 def main():
     date_str = "03-09-2026"   # update as needed
-    sweep_name = "ekf_mc_sweep"
+    sweep_name = "ukf_mc_sweep"
 
     # ============================================================
     # MONTE CARLO SETTINGS
     # ============================================================
 
     seed = 134
-    N_mc = 3   # increase later to 50 or 100 for valid results, I kept small for quick testing
+    N_mc = 2   # increase later to 50 or 100 for valid results, I kept small for quick testing
     save_individual_runs = False   # set True to save every MC run separately
     make_individual_plots = False  # keep False for speed
 
@@ -145,7 +146,7 @@ def main():
 
     # truncation sweep
     #L_list = [2, 5, 10, 20, 50, 100, 200, 300, 400, 500, 600]
-    L_list = [2, 10, 50] # short list for quick testing
+    L_list = [2, 10] # short list for quick testing
 
     # ============================================================
     # MC SUMMARY STORAGE
@@ -176,7 +177,7 @@ def main():
 
     for iL, L_max in enumerate(L_list):
         print("\n============================================================")
-        print(f"Running EKF Monte Carlo sweep for L_max = {L_max}")
+        print(f"Running UKF Monte Carlo sweep for L_max = {L_max}")
         print("============================================================")
 
         pos_rmse_xyz_runs = np.zeros((N_mc, 3), dtype=np.float64)
@@ -209,8 +210,8 @@ def main():
             # perturbed initial estimate
             x0 = sample_initial_estimate(x0_truth, P0, rng)
 
-            # EKF run
-            ts, Xhat, Phat, timing = ekf_run(
+            # UKF run
+            ts, Xhat, Phat, timing = ukf_run(
                 x0=x0,
                 P0=P0,
                 measurements=measurements,
@@ -218,7 +219,9 @@ def main():
                 L_max=L_max,
                 Q=Q,
                 R_full=R_full,
-                eps_fd=5.0
+                alpha=1e-3,
+                beta=2.0,
+                kappa=0.0
             )
 
             # metrics
@@ -238,13 +241,13 @@ def main():
             # optionally save each individual MC run change to True above
             if save_individual_runs:
                 runname = (
-                    f"ekf_mc_L{L_max}_run{mc:03d}"
+                    f"ukf_mc_L{L_max}_run{mc:03d}"
                     f"_Ngs{len(gs_locations)}_alt{alt_km}_T{prop_duration}per_seed{seed_mc}"
                 )
 
                 meta = {
                     "run_name": runname,
-                    "filter_type": "EKF",
+                    "filter_type": "UKF",
                     "is_monte_carlo": True,
                     "mc_index": int(mc),
                     "seed": int(seed_mc),
@@ -334,7 +337,7 @@ def main():
 
     meta = {
         "run_name": sweep_name,
-        "filter_type": "EKF",
+        "filter_type": "UKF",
         "is_monte_carlo": True,
         "date_str": date_str,
         "seed": int(seed),
