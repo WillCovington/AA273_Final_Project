@@ -2,7 +2,7 @@ import numpy as np
 
 from gravity.gravity_model import GravityModel
 from gravity.dynamics import make_time_grid, rollout
-from analysis.plot import plot_truth_vs_est, plot_trajectory_with_moon, plot_ground_track
+from analysis.plot import plot_truth_vs_est, plot_trajectory_with_moon, plot_ground_track, plot_earth_moon_gnss_dual_view
 from analysis.save_run import *
 
 from gnss.gnss_satellites import define_gnss_constellation
@@ -14,13 +14,13 @@ from analysis.sweep_report import *
 
 def main():
     date_str = "03-08-2026"   # update as needed
-    seed = 134
+    seed = 269
     rng = np.random.default_rng(seed)
 
     model = GravityModel.from_npz("clone_averages/grgm1200a_clone_mean_L660.npz")
 
     ##################### SETTING UP OUR TRUTH MODEL #####################
-    alt_km = 10.0 # altitude of orbit in km
+    alt_km = 50.0 # altitude of orbit in km
     r_mag = model.r0_m + alt_km * 1000.0
     mu = model.gm_m3_s2
     v_circ = np.sqrt(mu / r_mag)
@@ -50,7 +50,7 @@ def main():
     # Synthetic GNSS constellation
     gnss_sats = define_gnss_constellation(
         n_planes=6,
-        sats_per_plane=4,
+        sats_per_plane=1,
         sma_m=26560e3,
         inc_deg=55.0,
     )
@@ -134,7 +134,7 @@ def main():
 
         # Save figures
         plot_truth_vs_est(ts, X_truth, Xhat, Phat, show_error=True, save_dir=fig_dir)
-        plot_trajectory_with_moon(X_truth, Xhat, model, save_dir=fig_dir)
+        plot_earth_moon_gnss_dual_view(ts=ts, X_truth=X_truth, Xhat=Xhat, model=model, gnss_sats=gnss_sats, t_plot=ts[-1], save_dir=fig_dir, moon_orbit_scale_system=20.0)
         # ground track does not show GNSS sats, but still useful for spacecraft path
         plot_ground_track(
             ts,

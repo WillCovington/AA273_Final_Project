@@ -1,0 +1,23 @@
+{
+  "run_name": "gnss_ekf_L550_Nsat6_alt50.0_T1.5per_seed269",
+  "filter_type": "EKF_GNSS",
+  "seed": 269,
+  "alt_km": 50.0,
+  "prop_duration_periods": 1.5,
+  "dt_s": 1.0,
+  "Nsat": 6,
+  "sigma_rho": 5.0,
+  "sigma_rhodot": 0.05,
+  "L_truth": 660,
+  "L_max": 550,
+  "Q_diag": [
+    1e-06,
+    1e-06,
+    1e-06,
+    1e-06,
+    1e-06,
+    1e-06
+  ],
+  "date_dir": "03-08-2026",
+  "runname": "gnss_ekf_L550_Nsat6_alt50.0_T1.5per_seed269"
+}
