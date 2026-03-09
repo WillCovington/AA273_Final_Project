@@ -13,7 +13,7 @@ from analysis.sweep_report import *
 
 
 def main():
-    date_str = "03-08-2026"   # update as needed
+    date_str = "03-09-2026"   # update as needed
     seed = 269
     rng = np.random.default_rng(seed)
 
@@ -25,7 +25,7 @@ def main():
     mu = model.gm_m3_s2
     v_circ = np.sqrt(mu / r_mag)
     T_period = 2 * np.pi * np.sqrt(r_mag**3 / mu)
-    prop_duration = 1.5   # number of periods
+    prop_duration = 1.0   # number of periods
 
     # truth initial state
     # no matter how we want our orbit to work, we'll probably wanna leave the final entry (velocity in the z direction) as v_circ and leave the other velocity entries as zero
@@ -50,7 +50,7 @@ def main():
     # Synthetic GNSS constellation
     gnss_sats = define_gnss_constellation(
         n_planes=6,
-        sats_per_plane=1,
+        sats_per_plane=4,
         sma_m=26560e3,
         inc_deg=55.0,
     )
@@ -84,7 +84,7 @@ def main():
 
     Q = np.eye(6, dtype=np.float64) * 1e-6
 
-    L_list = [2, 5, 10, 20, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600]
+    L_list = [2, 5, 10, 20, 50, 100, 200, 300, 400, 500, 600]
 
     for L_max in L_list:
         runname = f"gnss_ekf_L{L_max}_Nsat{len(gnss_sats)}_alt{alt_km}_T{prop_duration}per_seed{seed}"
@@ -134,7 +134,7 @@ def main():
 
         # Save figures
         plot_truth_vs_est(ts, X_truth, Xhat, Phat, show_error=True, save_dir=fig_dir)
-        plot_earth_moon_gnss_dual_view(ts=ts, X_truth=X_truth, Xhat=Xhat, model=model, gnss_sats=gnss_sats, t_plot=ts[-1], save_dir=fig_dir, moon_orbit_scale_system=20.0)
+        plot_earth_moon_gnss_dual_view(ts=ts, X_truth=X_truth, Xhat=Xhat, model=model, gnss_sats=gnss_sats, t_plot=ts[-1], save_dir=fig_dir, moon_orbit_scale_system=100.0)
         # ground track does not show GNSS sats, but still useful for spacecraft path
         plot_ground_track(
             ts,
@@ -143,7 +143,7 @@ def main():
             img_path="Misc. Notes and Pictures/lroc_color_2k.jpg",
             save_dir=fig_dir,
         )
-    make_sweep_report(date_dir= "runs/03-08-2026", save_path="runs/03-08-2026/sweep_report.png", show=True, pos_requirement_m=10.0)
+    make_sweep_report(date_dir= "runs/{date_str}", save_path="runs/{date_str}/sweep_report.png", show=True, pos_requirement_m=10.0)
 
 if __name__ == "__main__":
     main()
