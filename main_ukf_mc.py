@@ -92,7 +92,7 @@ def main():
     # ============================================================
 
     seed = 134
-    N_mc = 2   # increase later to 50 or 100 for valid results, I kept small for quick testing
+    N_mc = 3   # increase later to 50 or 100 for valid results, I kept small for quick testing
     save_individual_runs = False   # set True to save every MC run separately
     make_individual_plots = False  # keep False for speed
 
@@ -145,8 +145,8 @@ def main():
     Q = np.eye(6) * 1e-6
 
     # truncation sweep
-    #L_list = [2, 5, 10, 20, 50, 100, 200, 300, 400, 500, 600]
-    L_list = [2, 10] # short list for quick testing
+    L_list = [2, 5, 10, 20, 50, 100, 200, 300, 400, 500, 600] # actual list of full truncation degrees
+    # L_list = [2, 10] # short list for quick testing
 
     # ============================================================
     # MC SUMMARY STORAGE
