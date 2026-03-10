@@ -2,7 +2,7 @@
 analysis/plot_mc_results.py
 
 - loads EKF and UKF Monte Carlo summary .npz files
-- makes comparison plots for the gravity fidelity study
+- makes comparison plots for the gravity fidelity sweep results
 
 Plots:
 1) Position RMSE vs L
