@@ -144,8 +144,8 @@ def main():
     Q = np.eye(6) * 1e-6
 
     # truncation sweep
-    #L_list = [2, 5, 10, 20, 50, 100, 200, 300, 400, 500, 600]
-    L_list = [2, 10, 50] # short list for quick testing
+    L_list = [2, 5, 10, 20, 50, 100, 200, 300, 400, 500, 600] # full sized list
+    # L_list = [2, 10, 50] # short list for quick testing
 
     # ============================================================
     # MC SUMMARY STORAGE

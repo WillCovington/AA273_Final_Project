@@ -143,7 +143,7 @@ def main():
             img_path="Misc. Notes and Pictures/lroc_color_2k.jpg",
             save_dir=fig_dir,
         )
-    make_sweep_report(date_dir= "runs/{date_str}", save_path="runs/{date_str}/sweep_report.png", show=True, pos_requirement_m=10.0)
+    make_sweep_report(date_dir= "runs/03-09-2026", save_path="runs/03-09-2026/sweep_report.png", show=True, pos_requirement_m=10.0)
 
 if __name__ == "__main__":
     main()
