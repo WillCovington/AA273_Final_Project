@@ -84,7 +84,7 @@ def save_mc_summary(
 
 
 def main():
-    date_str = "03-09-2026"   # update as needed
+    date_str = "03-10-2026"   # update as needed
     sweep_name = "ukf_mc_sweep"
 
     # ============================================================
@@ -92,7 +92,7 @@ def main():
     # ============================================================
 
     seed = 134
-    N_mc = 3   # increase later to 50 or 100 for valid results, I kept small for quick testing
+    N_mc = 5   # increase later to 50 or 100 for valid results, I kept small for quick testing
     save_individual_runs = False   # set True to save every MC run separately
     make_individual_plots = False  # keep False for speed
 
@@ -107,7 +107,7 @@ def main():
     mu = model.gm_m3_s2
     v_circ = np.sqrt(mu / r_mag)
     T_period = 2 * np.pi * np.sqrt(r_mag**3 / mu)
-    prop_duration = 1.0   # set to 5.0 later for final runs!!!!!!!!
+    prop_duration = 5.0   # set to 5.0 later for final runs!!!!!!!!
 
     # truth initial state
     x0_truth = np.array([r_mag, 0.0, 0.0, 0.0, v_circ / 2.0, v_circ], dtype=np.float64)
@@ -126,7 +126,7 @@ def main():
     # MEASUREMENT SETUP
     # ============================================================
 
-    gs_locations = define_ground_station_locations(n=20, lat_max_deg=45, seed=seed)
+    gs_locations = define_ground_station_locations(n=10, lat_max_deg=45, seed=seed)
 
     sigma_rho = 5.0       # m
     sigma_rhodot = 0.05   # m/s
@@ -145,7 +145,7 @@ def main():
     Q = np.eye(6) * 1e-6
 
     # truncation sweep
-    L_list = [2, 5, 10, 20, 50, 100, 200, 300, 400, 500, 600] # actual list of full truncation degrees
+    L_list = [5, 50, 100, 200, 300, 400, 500, 600]
     # L_list = [2, 10] # short list for quick testing
 
     # ============================================================
