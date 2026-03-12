@@ -142,7 +142,8 @@ def main():
     P0 = np.diag([1e6, 1e6, 1e6, 1e0, 1e0, 1e0])
 
     # process noise
-    Q = np.eye(6) * 1e-6
+    # Q = np.eye(6) * 1e-6
+    Q = np.diag([1e-10, 1e-10, 1e-10, 1e-6, 1e-6, 1e-6])
 
     # truncation sweep
     L_list = [5, 50, 100, 200, 300, 400, 500, 600]
