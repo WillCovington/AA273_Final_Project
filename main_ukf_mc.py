@@ -84,15 +84,15 @@ def save_mc_summary(
 
 
 def main():
-    date_str = "03-10-2026"   # update as needed
-    sweep_name = "ukf_mc_sweep"
+    date_str = "03-11-2026"   # update as needed
+    sweep_name = "ukf_mc_sweep_50km"  # update as needed
 
     # ============================================================
     # MONTE CARLO SETTINGS
     # ============================================================
 
     seed = 134
-    N_mc = 5   # increase later to 50 or 100 for valid results, I kept small for quick testing
+    N_mc = 3   # increase later to 50 or 100 for valid results, I kept small for quick testing
     save_individual_runs = False   # set True to save every MC run separately
     make_individual_plots = False  # keep False for speed
 
@@ -102,18 +102,18 @@ def main():
 
     # Truth Model
 
-    alt_km = 100.0
+    alt_km = 50.0
     r_mag = model.r0_m + alt_km * 1000.0
     mu = model.gm_m3_s2
     v_circ = np.sqrt(mu / r_mag)
     T_period = 2 * np.pi * np.sqrt(r_mag**3 / mu)
-    prop_duration = 5.0   # set to 5.0 later for final runs!!!!!!!!
+    prop_duration = 3.0   # set to 5.0 later for final runs!!!!!!!!
 
     # truth initial state
     x0_truth = np.array([r_mag, 0.0, 0.0, 0.0, v_circ / 2.0, v_circ], dtype=np.float64)
 
     # time grid
-    dt = 10.0
+    dt = 20.0
     t_grid = make_time_grid(0.0, T_period * prop_duration, dt)
 
     L_truth = model.lmax_data

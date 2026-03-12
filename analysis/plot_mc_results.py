@@ -21,7 +21,7 @@ from pathlib import Path
 # ============================================================
 # SETTINGS
 # ============================================================
-EKF_SUMMARY_PATH = "runs/03-10-2026/ekf_mc_sweep/ekf_mc_sweep_mc_summary.npz"
+EKF_SUMMARY_PATH = "runs/03-10-2026/ekf_mc_sweep_100km/ekf_mc_sweep_100km_mc_summary.npz"
 UKF_SUMMARY_PATH = "runs/03-09-2026/ukf_mc_sweep/ukf_mc_sweep_mc_summary.npz"
 
 # Where to save the figures
