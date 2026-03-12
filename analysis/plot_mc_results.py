@@ -21,11 +21,11 @@ from pathlib import Path
 # ============================================================
 # SETTINGS
 # ============================================================
-EKF_SUMMARY_PATH = "runs/03-10-2026/ekf_mc_sweep_100km/ekf_mc_sweep_100km_mc_summary.npz"
-UKF_SUMMARY_PATH = "runs/03-10-2026/ukf_mc_sweep/ukf_mc_sweep_mc_summary.npz"
+EKF_SUMMARY_PATH = "runs/03-11-2026/ekf_mc_sweep_50km/ekf_mc_sweep_50km_mc_summary.npz"
+UKF_SUMMARY_PATH = "runs/03-11-2026/ukf_mc_sweep_50km/ukf_mc_sweep_50km_mc_summary.npz"
 
 # Where to save the figures
-OUT_DIR = "runs/03-10-2026-100km/mc_comparison_figures"
+OUT_DIR = "runs/03-11-2026-50km/50km_mc_comparison_figures"
 
 # Selected gravity degrees for NEES-vs-time plots
 SELECTED_L = [5, 50, 200, 600] # removed 2, 10
