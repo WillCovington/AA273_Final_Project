@@ -84,8 +84,8 @@ def save_mc_summary(
 
 
 def main():
-    date_str = "03-11-2026"   # update as needed
-    sweep_name = "ukf_mc_sweep_50km"  # update as needed
+    date_str = "03-12-2026"   # update as needed
+    sweep_name = "ukf_mc_sweep_30km"  # update as needed
 
     # ============================================================
     # MONTE CARLO SETTINGS
@@ -102,7 +102,7 @@ def main():
 
     # Truth Model
 
-    alt_km = 50.0
+    alt_km = 30.0
     r_mag = model.r0_m + alt_km * 1000.0
     mu = model.gm_m3_s2
     v_circ = np.sqrt(mu / r_mag)
