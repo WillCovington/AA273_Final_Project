@@ -84,7 +84,7 @@ def save_mc_summary(
 
 def main():
     date_str = "03-15-2026"   # update as needed
-    sweep_name = "ekf_mc_sweep_50km_1orbit"
+    sweep_name = "ekf_mc_sweep_50km_5orbits"
 
     # ============================================================
     # MONTE CARLO SETTINGS
@@ -106,7 +106,7 @@ def main():
     mu = model.gm_m3_s2
     v_circ = np.sqrt(mu / r_mag)
     T_period = 2 * np.pi * np.sqrt(r_mag**3 / mu)
-    prop_duration = 1.0   # set to 5.0 later for final runs!!!!!!!!
+    prop_duration = 5.0   # set to 5.0 later for final runs!!!!!!!!
 
     # truth initial state
     x0_truth = np.array([r_mag, 0.0, 0.0, 0.0, v_circ / 2.0, v_circ], dtype=np.float64)
