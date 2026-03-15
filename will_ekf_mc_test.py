@@ -82,9 +82,9 @@ def main():
     x0 = x0_truth.copy()
     P0 = np.diag([1e5, 1e5, 1e5, 1e0, 1e0, 1e0]).astype(np.float64)
 
-    Q = np.eye(6, dtype=np.float64) * 1e-1
+    Q = np.eye(6, dtype=np.float64) * 1e-6
 
-    L_list = [600]
+    L_list = [2, 5, 10, 20, 50, 100, 200, 300, 400, 500, 600]
 
     for L_max in L_list:
         runname = f"gnss_ekf_L{L_max}_Nsat{len(gnss_sats)}_alt{alt_km}_T{prop_duration}per_seed{seed}"

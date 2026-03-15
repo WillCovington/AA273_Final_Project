@@ -23,14 +23,14 @@ def main():
     mu = model.gm_m3_s2
     v_circ = np.sqrt(mu / r_mag)
     T_period = 2 * np.pi * np.sqrt(r_mag**3 / mu) # time for one orbital period, in seconds
-    prop_duration = 0.5 # how many periods we want to propogate over SET TO 5.0 LATER
+    prop_duration = 1.5 # how many periods we want to propogate over SET TO 5.0 LATER
 
     # truth initial state
     # NOTE: hi this is Will, I'm just fucking around with numbers real quick, don't mind me
-    x0_truth = np.array([r_mag, 0.0, 0.0, 0.0, v_circ/2.0, v_circ], dtype=np.float64)
+    x0_truth = np.array([r_mag, 0.0, 0.0, 0.0, v_circ/2, v_circ], dtype=np.float64)
     
     # time grid (1 Hz)
-    t_grid = make_time_grid(0.0, T_period * prop_duration, 1.0) # depending on how long we want to simulate over, multiply T_period accordingly
+    t_grid = make_time_grid(0.0, T_period * prop_duration, 5.0) # depending on how long we want to simulate over, multiply T_period accordingly
 
     L_truth = model.lmax_data
 
@@ -73,9 +73,9 @@ def main():
     P0 = np.diag([1e6, 1e6, 1e6, 1e0, 1e0, 1e0])
 
     # process noise (placeholder; tune later)
-    Q = np.eye(6) * 1e-6
+    Q = np.eye(6) * 1e-3
 
-    L_list = [2, 5, 10, 20, 50, 100, 200, 300, 400, 500, 600]
+    L_list = [2, 10, 100, 200, 300]
 
     # iterating through our EKF's
     for L_max in L_list:

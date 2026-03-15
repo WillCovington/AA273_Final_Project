@@ -109,7 +109,7 @@ def main():
     prop_duration = 1.0   # set to 5.0 later for final runs!!!!!!!!
 
     # truth initial state
-    x0_truth = np.array([r_mag, 0.0, 0.0, 0.0, v_circ / 2.0, v_circ], dtype=np.float64)
+    x0_truth = np.array([0.0, r_mag, 0.0, 0.0, 0.0, v_circ], dtype=np.float64)
 
     # time grid
     dt = 10.0
