@@ -83,8 +83,8 @@ def save_mc_summary(
 
 
 def main():
-    date_str = "03-12-2026"   # update as needed
-    sweep_name = "ekf_mc_sweep_30km"
+    date_str = "03-15-2026"   # update as needed
+    sweep_name = "ekf_mc_sweep_50km_1orbit"
 
     # ============================================================
     # MONTE CARLO SETTINGS
@@ -101,18 +101,18 @@ def main():
 
     # Truth Model
 
-    alt_km = 30.0
+    alt_km = 50.0
     r_mag = model.r0_m + alt_km * 1000.0
     mu = model.gm_m3_s2
     v_circ = np.sqrt(mu / r_mag)
     T_period = 2 * np.pi * np.sqrt(r_mag**3 / mu)
-    prop_duration = 3.0   # set to 5.0 later for final runs!!!!!!!!
+    prop_duration = 1.0   # set to 5.0 later for final runs!!!!!!!!
 
     # truth initial state
     x0_truth = np.array([r_mag, 0.0, 0.0, 0.0, v_circ / 2.0, v_circ], dtype=np.float64)
 
     # time grid
-    dt = 20.0
+    dt = 30.0
     t_grid = make_time_grid(0.0, T_period * prop_duration, dt)
 
     L_truth = model.lmax_data
@@ -145,7 +145,7 @@ def main():
     Q = np.diag([1e-10, 1e-10, 1e-10, 1e-6, 1e-6, 1e-6])
 
     # truncation sweep
-    L_list = [5, 50, 100, 200, 300, 400, 500, 600]
+    L_list = [5, 10, 50, 100, 200, 300, 400, 500, 600]
     # L_list = [2, 10, 50] # short list for quick testing
 
     # ============================================================
